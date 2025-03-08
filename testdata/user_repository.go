@@ -6,13 +6,7 @@ import (
 )
 
 type UserRepository interface {
-	repo.CrudRepository[User, string]
+	repo.CrudRepository[User, int64]
 
 	FindByName(ctx context.Context, name string) (*User, error)
 }
-
-// type UserRepository[X User, Y string] interface {
-// 	repo.CrudRepository[X, Y]
-
-// 	FindByName(ctx context.Context, name string) (*X, error)
-// }

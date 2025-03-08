@@ -5,9 +5,9 @@ import (
 )
 
 type CrudRepository[M any, K comparable] interface {
-	Save(ctx context.Context, model *M) (*M, error)
-	FindByID(ctx context.Context, id K) (*M, error)
-	ExistsByID(ctx context.Context, id K) (bool, error)
-	Delete(ctx context.Context, model *M) error
+	Create(ctx context.Context, model *M) (*M, error)
+	Update(ctx context.Context, model *M) error
+	Find(ctx context.Context, id K) (*M, error)
+	Delete(ctx context.Context, id K) error
 	FindAll(ctx context.Context) ([]*M, int64, error)
 }
