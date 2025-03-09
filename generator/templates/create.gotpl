@@ -1,0 +1,14 @@
+func (r {{ .Receiver }}) {{ .Name }}({{ Params .Params }}) {{ Results .Results }} {
+    {{- if IsPkAutoIncrement .Model }}
+	result, err := r.db.ExecContext(ctx, "{{ InsertClause .TableName .Model }}", {{ InsertFieldBinding .Params .Model }})
+	if err != nil {
+		return nil, err
+	}
+
+	id, err := result.LastInsertId()
+	if err != nil {
+		return nil, err
+	}
+	return r.Find({{ CtxParam .Params }}, id)
+    {{- end }}
+}

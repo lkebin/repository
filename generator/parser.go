@@ -1,13 +1,13 @@
-package repository
+package generator
 
 import (
 	"fmt"
 	"go/ast"
 	"go/token"
 	"go/types"
+	"log"
 	"strings"
 
-	"github.com/sirupsen/logrus"
 	"golang.org/x/tools/go/packages"
 )
 
@@ -32,14 +32,14 @@ func ParseModel(tps, patterns []string, tags []string) []ModelSpecs {
 		Mode:       packages.NeedName | packages.NeedTypes | packages.NeedTypesInfo | packages.NeedSyntax | packages.NeedImports | packages.NeedDeps,
 		Tests:      false,
 		BuildFlags: []string{fmt.Sprintf("-tags=%s", strings.Join(tags, " "))},
-		Logf:       logrus.Infof,
+		Logf:       log.Printf,
 	}
 	pkgs, err := packages.Load(cfg, patterns...)
 	if err != nil {
-		logrus.Fatal(err)
+		log.Fatal(err)
 	}
 	if len(pkgs) != 1 {
-		logrus.Fatalf("error: %d packages matching %v", len(pkgs), strings.Join(patterns, " "))
+		log.Fatalf("error: %d packages matching %v", len(pkgs), strings.Join(patterns, " "))
 	}
 
 	var rts []ModelSpecs
@@ -69,7 +69,7 @@ func ParseModel(tps, patterns []string, tags []string) []ModelSpecs {
 						}
 					}
 
-					logrus.Debug(ts.Name)
+					log.Println(ts.Name)
 					rt.Struct = pkgs[0].TypesInfo.Defs[ts.Name].Type().Underlying().(*types.Struct)
 					rt.Type = pkgs[0].TypesInfo.Defs[ts.Name].Type()
 
@@ -89,14 +89,14 @@ func ParseRepository(tps, patterns []string, tags []string) []RepositorySpecs {
 		Mode:       packages.NeedName | packages.NeedTypes | packages.NeedTypesInfo | packages.NeedSyntax | packages.NeedImports | packages.NeedDeps,
 		Tests:      false,
 		BuildFlags: []string{fmt.Sprintf("-tags=%s", strings.Join(tags, " "))},
-		Logf:       logrus.Infof,
+		Logf:       log.Printf,
 	}
 	pkgs, err := packages.Load(cfg, patterns...)
 	if err != nil {
-		logrus.Fatal(err)
+		log.Fatal(err)
 	}
 	if len(pkgs) != 1 {
-		logrus.Fatalf("error: %d packages matching %v", len(pkgs), strings.Join(patterns, " "))
+		log.Fatalf("error: %d packages matching %v", len(pkgs), strings.Join(patterns, " "))
 	}
 
 	var rts []RepositorySpecs
@@ -139,33 +139,33 @@ func ParseRepository(tps, patterns []string, tags []string) []RepositorySpecs {
 						}
 					}
 
-					logrus.Debug(ts.Name)
+					log.Println(ts.Name)
 					for _, field := range it.Methods.List {
 						switch field.Type.(type) {
 						case *ast.FuncType:
-							logrus.Debug("FuncType: ", field.Names[0])
-							logrus.Debug("  TypesInfo: ", pkgs[0].TypesInfo.Defs[field.Names[0]])
+							log.Println("FuncType: ", field.Names[0])
+							log.Println("  TypesInfo: ", pkgs[0].TypesInfo.Defs[field.Names[0]])
 							rt.Methods = append(rt.Methods, pkgs[0].TypesInfo.Defs[field.Names[0]].(*types.Func))
 						case *ast.IndexExpr:
 							switch field.Type.(*ast.IndexExpr).X.(type) {
 							case *ast.SelectorExpr:
-								logrus.Debug("IndexExpr: ", field.Type.(*ast.IndexExpr).X.(*ast.SelectorExpr).Sel)
-								logrus.Debug("  TypeInfo: ", pkgs[0].TypesInfo.Instances[field.Type.(*ast.IndexExpr).X.(*ast.SelectorExpr).Sel].Type.String())
+								log.Println("IndexExpr: ", field.Type.(*ast.IndexExpr).X.(*ast.SelectorExpr).Sel)
+								log.Println("  TypeInfo: ", pkgs[0].TypesInfo.Instances[field.Type.(*ast.IndexExpr).X.(*ast.SelectorExpr).Sel].Type.String())
 								rt.Methods = append(rt.Methods, parseTypeEmbedding(pkgs[0].TypesInfo.Instances[field.Type.(*ast.IndexExpr).X.(*ast.SelectorExpr).Sel])...)
 							case *ast.Ident:
-								logrus.Debug("IndexExpr: ", field.Type.(*ast.IndexExpr).X.(*ast.Ident).Name)
-								logrus.Debug("  TypesInfo: ", pkgs[0].TypesInfo.Instances[field.Type.(*ast.IndexExpr).X.(*ast.Ident)].Type.String())
+								log.Println("IndexExpr: ", field.Type.(*ast.IndexExpr).X.(*ast.Ident).Name)
+								log.Println("  TypesInfo: ", pkgs[0].TypesInfo.Instances[field.Type.(*ast.IndexExpr).X.(*ast.Ident)].Type.String())
 								rt.Methods = append(rt.Methods, parseTypeEmbedding(pkgs[0].TypesInfo.Instances[field.Type.(*ast.IndexExpr).X.(*ast.Ident)])...)
 							}
 						case *ast.IndexListExpr:
 							switch field.Type.(*ast.IndexListExpr).X.(type) {
 							case *ast.SelectorExpr:
-								logrus.Debug("IndexListExpr: ", field.Type.(*ast.IndexListExpr).X.(*ast.SelectorExpr).X, field.Type.(*ast.IndexListExpr).X.(*ast.SelectorExpr).Sel)
-								logrus.Debug("  TypesInfo: ", pkgs[0].TypesInfo.Instances[field.Type.(*ast.IndexListExpr).X.(*ast.SelectorExpr).Sel].Type.String())
+								log.Println("IndexListExpr: ", field.Type.(*ast.IndexListExpr).X.(*ast.SelectorExpr).X, field.Type.(*ast.IndexListExpr).X.(*ast.SelectorExpr).Sel)
+								log.Println("  TypesInfo: ", pkgs[0].TypesInfo.Instances[field.Type.(*ast.IndexListExpr).X.(*ast.SelectorExpr).Sel].Type.String())
 								rt.Methods = append(rt.Methods, parseTypeEmbedding(pkgs[0].TypesInfo.Instances[field.Type.(*ast.IndexListExpr).X.(*ast.SelectorExpr).Sel])...)
 							case *ast.Ident:
-								logrus.Debug("IndexListExpr: ", field.Type.(*ast.IndexListExpr).X.(*ast.Ident).Name)
-								logrus.Debug("  TypesInfo: ", pkgs[0].TypesInfo.Instances[field.Type.(*ast.IndexListExpr).X.(*ast.Ident)].Type.String())
+								log.Println("IndexListExpr: ", field.Type.(*ast.IndexListExpr).X.(*ast.Ident).Name)
+								log.Println("  TypesInfo: ", pkgs[0].TypesInfo.Instances[field.Type.(*ast.IndexListExpr).X.(*ast.Ident)].Type.String())
 								rt.Methods = append(rt.Methods, parseTypeEmbedding(pkgs[0].TypesInfo.Instances[field.Type.(*ast.IndexListExpr).X.(*ast.Ident)])...)
 							}
 						}
@@ -194,14 +194,14 @@ func parseTypeInterface(t types.Type) []*types.Func {
 		return parseTypeInterface(tt.Underlying())
 	case *types.Interface:
 		for i := 0; i < tt.NumMethods(); i++ {
-			logrus.Debug("  Method: ", tt.Method(i).Name(), " ", tt.Method(i).Pkg().Path())
-			logrus.Debug("    Params: ", types.TypeString(tt.Method(i).Type().(*types.Signature).Params(), nil))
+			log.Println("  Method: ", tt.Method(i).Name(), " ", tt.Method(i).Pkg().Path())
+			log.Println("    Params: ", types.TypeString(tt.Method(i).Type().(*types.Signature).Params(), nil))
 			for p := 0; p < tt.Method(i).Type().(*types.Signature).Params().Len(); p++ {
-				logrus.Debug("      Param type: ", tt.Method(i).Type().(*types.Signature).Params().At(p).Type())
+				log.Println("      Param type: ", tt.Method(i).Type().(*types.Signature).Params().At(p).Type())
 			}
-			logrus.Debug("    Result: ", types.TypeString(tt.Method(i).Type().(*types.Signature).Results(), nil))
+			log.Println("    Result: ", types.TypeString(tt.Method(i).Type().(*types.Signature).Results(), nil))
 			for p := 0; p < tt.Method(i).Type().(*types.Signature).Results().Len(); p++ {
-				logrus.Debug("      Result type: ", tt.Method(i).Type().(*types.Signature).Results().At(p).Type())
+				log.Println("      Result type: ", tt.Method(i).Type().(*types.Signature).Results().At(p).Type())
 			}
 
 			funcs = append(funcs, tt.Method(i))

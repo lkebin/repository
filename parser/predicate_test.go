@@ -2,12 +2,14 @@ package parser
 
 import (
 	"testing"
-
-	"github.com/stretchr/testify/assert"
 )
 
 func TestNewPredicate(t *testing.T) {
 	p, err := NewPredicate("AndroidEqualsAllIgnoreCase")
-	assert.Nil(t, err)
-	assert.Len(t, p.Nodes, 1)
+	if err != nil {
+		t.Errorf("error: %v", err)
+	}
+	if len(p.Nodes) != 1 {
+		t.Errorf("expect 1, got %d", len(p.Nodes))
+	}
 }

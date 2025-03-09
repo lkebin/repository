@@ -1,2 +1,2 @@
 all:
-	go build -o repository
+	go build -o repository ./cmd/repository
