@@ -13,12 +13,12 @@ var (
 )
 
 type Order struct {
-	property  string
-	direction string
+	Property  string
+	Direction string
 }
 
 type OrderBySource struct {
-	orders []*Order
+	Orders []*Order
 }
 
 func NewOrderBySource(clause string) (*OrderBySource, error) {
@@ -49,7 +49,7 @@ func NewOrderBySource(clause string) (*OrderBySource, error) {
 			}
 		}
 
-		orderBySource.orders = append(orderBySource.orders, &Order{property: propertyString, direction: directionString})
+		orderBySource.Orders = append(orderBySource.Orders, &Order{Property: propertyString, Direction: directionString})
 	}
 
 	return orderBySource, nil

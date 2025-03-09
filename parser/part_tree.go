@@ -15,8 +15,8 @@ var (
 )
 
 type PartTree struct {
-	subject   *Subject
-	predicate *Predicate
+	Subject   *Subject
+	Predicate *Predicate
 }
 
 func NewPartTree(source string) (*PartTree, error) {
@@ -25,26 +25,26 @@ func NewPartTree(source string) (*PartTree, error) {
 	matches := prefixTemplate.FindAllString(source, -1)
 
 	if matches == nil {
-		pt.subject = NewSubject("")
+		pt.Subject = NewSubject("")
 		predicate, err := NewPredicate(source)
 		if err != nil {
 			return nil, err
 		}
-		pt.predicate = predicate
+		pt.Predicate = predicate
 	} else {
-		pt.subject = NewSubject(matches[0])
+		pt.Subject = NewSubject(matches[0])
 		predicate, err := NewPredicate(source[len(matches[0]):])
 		if err != nil {
 			return nil, err
 		}
-		pt.predicate = predicate
+		pt.Predicate = predicate
 	}
 
 	return pt, nil
 }
 
 type OrPart struct {
-	children []*Part
+	Children []*Part
 }
 
 func NewOrPart(source string, isAlwaysIgnoreCase bool) *OrPart {
@@ -53,7 +53,7 @@ func NewOrPart(source string, isAlwaysIgnoreCase bool) *OrPart {
 	split := strings.Split(source, "And")
 
 	for _, part := range split {
-		orPart.children = append(orPart.children, NewPart(part, isAlwaysIgnoreCase))
+		orPart.Children = append(orPart.Children, NewPart(part, isAlwaysIgnoreCase))
 	}
 
 	return orPart

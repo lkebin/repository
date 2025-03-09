@@ -7,9 +7,9 @@ import (
 )
 
 type Predicate struct {
-	isAlwaysIgnoreCase bool
-	nodes              []*OrPart
-	orderBySource      *OrderBySource
+	IsAlwaysIgnoreCase bool
+	Nodes              []*OrPart
+	OrderBySource      *OrderBySource
 }
 
 var (
@@ -26,7 +26,7 @@ func NewPredicate(predicate string) (*Predicate, error) {
 	}
 
 	for _, v := range strings.Split(parts[0], "Or") {
-		p.nodes = append(p.nodes, NewOrPart(v, p.isAlwaysIgnoreCase))
+		p.Nodes = append(p.Nodes, NewOrPart(v, p.IsAlwaysIgnoreCase))
 	}
 
 	if len(parts) == 2 {
@@ -35,7 +35,7 @@ func NewPredicate(predicate string) (*Predicate, error) {
 			return nil, err
 		}
 
-		p.orderBySource = orderBySource
+		p.OrderBySource = orderBySource
 	}
 
 	return p, nil
@@ -44,7 +44,7 @@ func NewPredicate(predicate string) (*Predicate, error) {
 func (p *Predicate) detectAndSetAllIgnoreCase(predicate string) string {
 	indexes := allIgnoreCase.FindAllStringIndex(predicate, -1)
 	if indexes != nil {
-		p.isAlwaysIgnoreCase = true
+		p.IsAlwaysIgnoreCase = true
 		predicate = predicate[0:indexes[0][0]] + predicate[indexes[0][1]:]
 	}
 

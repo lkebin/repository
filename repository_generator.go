@@ -5,8 +5,11 @@ import (
 	"go/types"
 	"reflect"
 	"regexp"
+	"repository/parser"
 	"strings"
 	"text/template"
+
+	"github.com/sirupsen/logrus"
 )
 
 func GenerateRepositoryImplements(spec *RepositorySpecs) (string, error) {
@@ -102,14 +105,42 @@ var findTpl = `
 func (r {{ .Receiver }}) {{ .Name }}({{ Params .Params }}) {{ Results .Results }} {
 	{{- if IsReturnSliceModel .Results }}
 	var m {{ ResultModel .Results }}
-	err := sqlx.SelectContext({{ CtxParam .Params }}, r.db, &m, "{{ SelectClause .SelectColumns }} {{ FromClause .TableName }} {{ WhereClause .WhereColumns }}", {{ VarBinding .Params }})
+    {{- if IsQueryIn .PartTree }}
+	query, args, err := sqlx.In("{{ SelectClause .PartTree .Model }} {{ FromClause .TableName }} {{ WhereClausePredicate .PartTree .Params .Model }}", {{ VarBinding .Params }})
+	if err != nil {
+		return nil, err
+	}
+	query = r.db.Rebind(query)
+	err = r.db.SelectContext({{ CtxParam .Params }}, &m, query, args...)
+	if err != nil {
+		return nil, err
+	}
+    return m, nil
+    {{- else }}
+	err := sqlx.SelectContext({{ CtxParam .Params }}, r.db, &m, "{{ SelectClause .PartTree .Model }} {{ FromClause .TableName }} {{ WhereClausePredicate .PartTree .Params .Model }}", {{ VarBinding .Params }})
 	if err != nil {
 		return nil, err
 	}
 	return m, nil
+	{{- end }}
 	{{- else }}
 	var m {{ ResultModel .Results }}
-	err := r.db.QueryRowxContext({{ CtxParam .Params }}, "{{ SelectClause .SelectColumns }} {{ FromClause .TableName }} {{ WhereClause .WhereColumns }}", {{ VarBinding .Params }}).StructScan(&m)
+	{{- if IsQueryIn .PartTree }}
+	query, args, err := sqlx.In("{{ SelectClause .PartTree .Model }} {{ FromClause .TableName }} {{ WhereClausePredicate .PartTree .Params .Model }}", {{ VarBinding .Params }})
+	if err != nil {
+		return nil, err
+	}
+	query = r.db.Rebind(query)
+	err = r.db.QueryRowxContext({{ CtxParam .Params }}, &m, query, args...)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &m, nil
+	{{- else }}
+	err := r.db.QueryRowxContext({{ CtxParam .Params }}, "{{ SelectClause .PartTree .Model }} {{ FromClause .TableName }} {{ WhereClausePredicate .PartTree .Params .Model }}", {{ VarBinding .Params }}).StructScan(&m)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
@@ -118,11 +149,12 @@ func (r {{ .Receiver }}) {{ .Name }}({{ Params .Params }}) {{ Results .Results }
 	}
 	return &m, nil
 	{{- end }}
+	{{- end }}
 }`
 
 var deleteTpl = `
 func (r {{ .Receiver }}) {{ .Name }}({{ Params .Params }}) {{ Results .Results }} {
-	_, err := r.db.ExecContext({{ CtxParam .Params }}, "DELETE {{ FromClause .TableName }} {{ WhereClause .WhereColumns }}", {{ VarBinding .Params }})
+	_, err := r.db.ExecContext({{ CtxParam .Params }}, "DELETE {{ FromClause .TableName }} {{ WhereClausePredicate .PartTree .Params .Model }}", {{ VarBinding .Params }})
 	if err != nil {
 		return err
 	}
@@ -164,14 +196,16 @@ type FuncImpl struct {
 	Model         *ModelSpecs
 	SelectColumns []*Column
 	WhereColumns  []*Column
+	PartTree      *parser.PartTree
 }
 
 type Column struct {
-	Name string
+	Name     string
+	Property string
 }
 
 func getFuncImpl(implName string, model *ModelSpecs, m *types.Func) (string, error) {
-	var container = &strings.Builder{}
+	var tpl = &strings.Builder{}
 	fn := FuncImpl{
 		Name:      m.Name(),
 		Receiver:  fmt.Sprintf("*%s", implName),
@@ -180,46 +214,67 @@ func getFuncImpl(implName string, model *ModelSpecs, m *types.Func) (string, err
 		TableName: ToSnakeCase(model.Name),
 		Model:     model,
 	}
-	switch m.Name() {
-	case "Find":
+	switch {
+	case strings.HasPrefix(m.Name(), "Find"):
+		if m.Name() == "Find" {
+			pkColumn := lookupPkColumn(model)
+			if pkColumn == nil {
+				return "", fmt.Errorf("pk column not found")
+			}
+			pt, err := parser.NewPartTree("FindBy" + pkColumn.Property)
+			if err != nil {
+				return "", err
+			}
+			fn.PartTree = pt
+		} else {
+			pt, err := parser.NewPartTree(m.Name())
+			if err != nil {
+				return "", err
+			}
+			fn.PartTree = pt
+		}
+
+		if err := template.Must(template.New("").Funcs(funcMap()).Parse(findTpl)).Execute(tpl, fn); err != nil {
+			return "", err
+		}
+	case m.Name() == "Update":
 		pkColumn := lookupPkColumn(model)
 		if pkColumn == nil {
 			return "", fmt.Errorf("pk column not found")
 		}
 		fn.WhereColumns = []*Column{{Name: pkColumn.Name}}
-
-		selectColumns := lookupSelectColumns(model)
-		fn.SelectColumns = selectColumns
-
-		if err := template.Must(template.New("").Funcs(funcMap()).Parse(findTpl)).Execute(container, fn); err != nil {
+		if err := template.Must(template.New("").Funcs(funcMap()).Parse(updateTpl)).Execute(tpl, fn); err != nil {
 			return "", err
 		}
-	case "Update":
-		pkColumn := lookupPkColumn(model)
-		if pkColumn == nil {
-			return "", fmt.Errorf("pk column not found")
-		}
-		fn.WhereColumns = []*Column{{Name: pkColumn.Name}}
-		if err := template.Must(template.New("").Funcs(funcMap()).Parse(updateTpl)).Execute(container, fn); err != nil {
+	case m.Name() == "Create":
+		if err := template.Must(template.New("").Funcs(funcMap()).Parse(createTpl)).Execute(tpl, fn); err != nil {
 			return "", err
 		}
-	case "Create":
-		if err := template.Must(template.New("").Funcs(funcMap()).Parse(createTpl)).Execute(container, fn); err != nil {
-			return "", err
+	case strings.HasPrefix(m.Name(), "Delete"):
+		if m.Name() == "Delete" {
+			pkColumn := lookupPkColumn(model)
+			if pkColumn == nil {
+				return "", fmt.Errorf("pk column not found")
+			}
+			pt, err := parser.NewPartTree("DeleteBy" + pkColumn.Property)
+			if err != nil {
+				return "", err
+			}
+			fn.PartTree = pt
+		} else {
+			pt, err := parser.NewPartTree(m.Name())
+			if err != nil {
+				return "", err
+			}
+			fn.PartTree = pt
 		}
-	case "Delete":
-		pkColumn := lookupPkColumn(model)
-		if pkColumn == nil {
-			return "", fmt.Errorf("pk column not found")
-		}
-		fn.WhereColumns = []*Column{{Name: pkColumn.Name}}
 
-		if err := template.Must(template.New("").Funcs(funcMap()).Parse(deleteTpl)).Execute(container, fn); err != nil {
+		if err := template.Must(template.New("").Funcs(funcMap()).Parse(deleteTpl)).Execute(tpl, fn); err != nil {
 			return "", err
 		}
 	}
 
-	return container.String(), nil
+	return tpl.String(), nil
 }
 
 func funcMap() template.FuncMap {
@@ -235,14 +290,27 @@ func funcMap() template.FuncMap {
 	fm["InsertClause"] = GenInsertClause
 	fm["UpdateClause"] = GenUpdateClause
 	fm["FromClause"] = GenFromClause
+	fm["WhereClausePredicate"] = GenWhereClausePredicate
 	fm["WhereClause"] = GenWhereClause
 	fm["VarBinding"] = GenVarBinding
 	fm["ResultModel"] = GenResultModel
 	fm["IsReturnSliceModel"] = IsReturnSliceModel
 	fm["IsPkAutoIncrement"] = IsPkAutoIncrement
 	fm["InsertFieldBinding"] = GenInsertFieldBinding
+	fm["IsQueryIn"] = IsQueryIn
 	fm["UpdateFieldBinding"] = GenUpdateFieldBinding
 	return fm
+}
+
+func IsQueryIn(pt *parser.PartTree) bool {
+	for _, v := range pt.Predicate.Nodes {
+		for _, vv := range v.Children {
+			if reflect.DeepEqual(vv.Type, parser.In) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func GenParams(params *types.Tuple) string {
@@ -428,9 +496,15 @@ func GenUpdateClause(tableName string, model *ModelSpecs) string {
 	return s.String()
 }
 
-func GenSelectClause(columns []*Column) string {
+func GenSelectClause(pt *parser.PartTree, m *ModelSpecs) string {
+	columns := lookupColumns(m)
 	var s = &strings.Builder{}
 	s.WriteString("SELECT ")
+
+	if pt.Subject.IsDistinct {
+		s.WriteString("DISTINCT ")
+	}
+
 	for i, v := range columns {
 		s.WriteString("`")
 		s.WriteString(v.Name)
@@ -439,11 +513,64 @@ func GenSelectClause(columns []*Column) string {
 			s.WriteString(", ")
 		}
 	}
+
 	return s.String()
 }
 
 func GenFromClause(tableName string) string {
 	return fmt.Sprintf("FROM `%s`", tableName)
+}
+
+func parseOperator(pt parser.PartType) (string, error) {
+	op := ""
+	switch {
+	case reflect.DeepEqual(pt, parser.Between):
+		op = " BETWEEN ? AND ?"
+	case reflect.DeepEqual(pt, parser.IsNotNull):
+		op = " IS NOT NULL"
+	case reflect.DeepEqual(pt, parser.IsNull):
+		op = " IS NULL"
+	case reflect.DeepEqual(pt, parser.LessThan):
+		op = " < ?"
+	case reflect.DeepEqual(pt, parser.LessThanEqual):
+		op = " <= ?"
+	case reflect.DeepEqual(pt, parser.GreaterThan):
+		op = " > ?"
+	case reflect.DeepEqual(pt, parser.GreaterThanEqual):
+		op = " >= ?"
+	case reflect.DeepEqual(pt, parser.Before):
+		op = " < ?"
+	case reflect.DeepEqual(pt, parser.After):
+		op = " > ?"
+	case reflect.DeepEqual(pt, parser.NotLike):
+		op = " NOT LIKE ?"
+	case reflect.DeepEqual(pt, parser.Like):
+		op = " LIKE ?"
+	case reflect.DeepEqual(pt, parser.StartingWith):
+		op = " LIKE ?"
+	case reflect.DeepEqual(pt, parser.EndingWith):
+		op = " LIKE ?"
+	case reflect.DeepEqual(pt, parser.IsNotEmpty):
+		op = " IS NOT NULL"
+	case reflect.DeepEqual(pt, parser.IsEmpty):
+		op = " IS NULL"
+	case reflect.DeepEqual(pt, parser.NotContaining):
+		op = " NOT LIKE ?"
+	case reflect.DeepEqual(pt, parser.Containing):
+		op = " LIKE ?"
+	case reflect.DeepEqual(pt, parser.NotIn):
+		op = " NOT IN (?)"
+	case reflect.DeepEqual(pt, parser.In):
+		op = " IN (?)"
+	case reflect.DeepEqual(pt, parser.NegatingSimpleProperty):
+		op = " != ?"
+	case reflect.DeepEqual(pt, parser.SimpleProperty):
+		op = " = ?"
+	default:
+		return "", fmt.Errorf("operator not implemented")
+	}
+
+	return op, nil
 }
 
 func GenWhereClause(columns []*Column) string {
@@ -455,6 +582,65 @@ func GenWhereClause(columns []*Column) string {
 		s.WriteString("` = ?")
 		if i < len(columns)-1 {
 			s.WriteString(" AND ")
+		}
+	}
+	return s.String()
+}
+
+func GenWhereClausePredicate(pt *parser.PartTree, params *types.Tuple, m *ModelSpecs) string {
+	// validate number of params
+	numberOfParams := params.Len() - 1
+	for _, v := range pt.Predicate.Nodes {
+		for _, vv := range v.Children {
+			numberOfParams -= vv.Type.NumberOfArguments
+		}
+	}
+	if numberOfParams != 0 {
+		logrus.Panicf("number of params not match: %d", numberOfParams)
+	}
+	columns := lookupColumns(m)
+	var s = &strings.Builder{}
+	s.WriteString("WHERE ")
+	numberOfNodes := len(pt.Predicate.Nodes)
+	for k, v := range pt.Predicate.Nodes {
+		if numberOfNodes > 1 {
+			s.WriteString("(")
+		}
+		numberOfChildren := len(v.Children)
+		for i, n := range v.Children {
+			var column *Column
+			for _, c := range columns {
+				if strings.ToLower(c.Property) == strings.ToLower(n.Property) {
+					column = c
+				}
+			}
+			if column == nil {
+				logrus.Panicf("column not found: %s", n.Property)
+			}
+			if numberOfChildren > 1 {
+				s.WriteString("(")
+			}
+			s.WriteString("`")
+			s.WriteString(column.Name)
+			s.WriteString("`")
+			op, err := parseOperator(n.Type)
+			if err != nil {
+				logrus.Panicf("parse operator error: %s", err)
+			}
+			s.WriteString(op)
+			if numberOfChildren > 1 {
+				s.WriteString(")")
+			}
+			if i < len(v.Children)-1 {
+				s.WriteString(" AND ")
+			}
+		}
+		if numberOfNodes > 1 {
+			s.WriteString(")")
+		}
+
+		if k < len(pt.Predicate.Nodes)-1 {
+			s.WriteString(" OR ")
 		}
 	}
 	return s.String()
@@ -507,14 +693,17 @@ func GenResultModel(results *types.Tuple) string {
 	return typ.Elem().String()
 }
 
-func lookupSelectColumns(model *ModelSpecs) []*Column {
+func lookupColumns(model *ModelSpecs) []*Column {
 	var columns []*Column
 	for i := 0; i < model.Struct.NumFields(); i++ {
 		tag := reflect.StructTag(model.Struct.Tag(i))
 		columnName, _ := ParseTag(tag.Get("db"))
-		columns = append(columns, &Column{
-			Name: columnName,
-		})
+		if columnName != "" {
+			columns = append(columns, &Column{
+				Name:     columnName,
+				Property: model.Struct.Field(i).Name(),
+			})
+		}
 	}
 	return columns
 }
@@ -523,9 +712,10 @@ func lookupPkColumn(model *ModelSpecs) *Column {
 	for i := 0; i < model.Struct.NumFields(); i++ {
 		tag := reflect.StructTag(model.Struct.Tag(i))
 		columnName, opts := ParseTag(tag.Get("db"))
-		if opts.Contains("pk") {
+		if columnName != "" && opts.Contains("pk") {
 			return &Column{
-				Name: columnName,
+				Name:     columnName,
+				Property: model.Struct.Field(i).Name(),
 			}
 		}
 	}

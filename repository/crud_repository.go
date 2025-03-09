@@ -9,5 +9,4 @@ type CrudRepository[M any, K comparable] interface {
 	Update(ctx context.Context, model *M) error
 	Find(ctx context.Context, id K) (*M, error)
 	Delete(ctx context.Context, id K) error
-	FindAll(ctx context.Context) ([]*M, int64, error)
 }

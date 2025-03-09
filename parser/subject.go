@@ -16,23 +16,23 @@ var (
 )
 
 type Subject struct {
-	isDistinct bool
-	isCount    bool
-	isExists   bool
-	isDelete   bool
-	isLimiting bool
-	maxResults int
+	IsDistinct bool
+	IsCount    bool
+	IsExists   bool
+	IsDelete   bool
+	IsLimiting bool
+	MaxResults int
 }
 
 func NewSubject(subject string) *Subject {
 	s := &Subject{}
 
-	s.isDistinct = strings.Contains(subject, distinct)
-	s.isCount = matches(subject, countByTemplate)
-	s.isExists = matches(subject, existsByTemplate)
-	s.isDelete = matches(subject, deleteByTemplate)
-	s.maxResults = returnMaxResultsIfFirstKSubject(subject)
-	s.isLimiting = s.maxResults > 0
+	s.IsDistinct = strings.Contains(subject, distinct)
+	s.IsCount = matches(subject, countByTemplate)
+	s.IsExists = matches(subject, existsByTemplate)
+	s.IsDelete = matches(subject, deleteByTemplate)
+	s.MaxResults = returnMaxResultsIfFirstKSubject(subject)
+	s.IsLimiting = s.MaxResults > 0
 
 	return s
 }

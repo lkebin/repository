@@ -66,15 +66,15 @@ var (
 	AllKeywords = func() []string {
 		var keywords []string
 		for _, partType := range All {
-			keywords = append(keywords, partType.keywords...)
+			keywords = append(keywords, partType.Keywords...)
 		}
 		return keywords
 	}()
 )
 
 type PartType struct {
-	numberOfArguments int
-	keywords          []string
+	NumberOfArguments int
+	Keywords          []string
 }
 
 func NewPartTypeFromProperty(property string) PartType {
@@ -87,7 +87,7 @@ func NewPartTypeFromProperty(property string) PartType {
 }
 
 func (p *PartType) supports(rawProperty string) bool {
-	for _, keyword := range p.keywords {
+	for _, keyword := range p.Keywords {
 		if strings.HasSuffix(rawProperty, keyword) {
 			return true
 		}
@@ -96,7 +96,7 @@ func (p *PartType) supports(rawProperty string) bool {
 }
 
 func (p *PartType) extractProperty(part string) string {
-	for _, keyword := range p.keywords {
+	for _, keyword := range p.Keywords {
 		if strings.HasSuffix(part, keyword) {
 			return strings.TrimSuffix(part, keyword)
 		}

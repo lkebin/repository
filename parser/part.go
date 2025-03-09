@@ -15,9 +15,9 @@ var (
 )
 
 type Part struct {
-	property   string
-	typ        PartType
-	ignoreCase IgnoreCaseType
+	Property   string
+	Type       PartType
+	IgnoreCase IgnoreCaseType
 }
 
 func NewPart(source string, isAlwaysIgnoreCase bool) *Part {
@@ -25,12 +25,12 @@ func NewPart(source string, isAlwaysIgnoreCase bool) *Part {
 
 	partToUse := part.detectAndSetIgnoreCase(source)
 
-	if isAlwaysIgnoreCase && part.ignoreCase != Always {
-		part.ignoreCase = WhenPossible
+	if isAlwaysIgnoreCase && part.IgnoreCase != Always {
+		part.IgnoreCase = WhenPossible
 	}
 
-	part.typ = NewPartTypeFromProperty(partToUse)
-	part.property = part.typ.extractProperty(partToUse)
+	part.Type = NewPartTypeFromProperty(partToUse)
+	part.Property = part.Type.extractProperty(partToUse)
 
 	return part
 }
@@ -40,7 +40,7 @@ func (p *Part) detectAndSetIgnoreCase(part string) string {
 	match := ignoreCase.FindStringIndex(part)
 
 	if match != nil {
-		p.ignoreCase = Always
+		p.IgnoreCase = Always
 		result = part[:match[0]] + part[match[1]:]
 	}
 

@@ -9,5 +9,5 @@ import (
 func TestNewPredicate(t *testing.T) {
 	p, err := NewPredicate("AndroidEqualsAllIgnoreCase")
 	assert.Nil(t, err)
-	assert.Len(t, p.nodes, 1)
+	assert.Len(t, p.Nodes, 1)
 }
