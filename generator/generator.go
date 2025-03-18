@@ -37,7 +37,7 @@ func GenerateRepositoryImplements(spec *RepositorySpecs) ([]byte, error) {
 	tpl.WriteString("import (\n")
 	imports := map[string]any{}
 	imports["github.com/jmoiron/sqlx"] = nil
-	imports[spec.Pkg.Path()] = nil
+	imports["database/sql"] = nil
 	for _, v := range spec.Methods {
 		for i := 0; i < v.Signature().Params().Len(); i++ {
 			importPath := lookupPkgPath(v.Signature().Params().At(i).Type())
@@ -64,7 +64,7 @@ func GenerateRepositoryImplements(spec *RepositorySpecs) ([]byte, error) {
 	tpl.WriteString("\n")
 
 	// New
-	tpl.WriteString(fmt.Sprintf("func New%s(db sqlx.ExtContext) %s {\n", spec.Name, fmt.Sprintf("%s.%s", spec.Pkg.Name(), spec.Name)))
+	tpl.WriteString(fmt.Sprintf("func New%s(db sqlx.ExtContext) %s {\n", spec.Name, spec.Name))
 	tpl.WriteString(fmt.Sprintf("\treturn &%s{db: db}\n", implName))
 	tpl.WriteString("}\n")
 	tpl.WriteString("\n")
@@ -225,10 +225,24 @@ func funcMap() template.FuncMap {
 	fm["ResultModel"] = GenResultModel
 	fm["IsReturnSliceModel"] = IsReturnSliceModel
 	fm["IsPkAutoIncrement"] = IsPkAutoIncrement
-	fm["InsertFieldBinding"] = GenInsertFieldBinding
 	fm["IsQueryIn"] = IsQueryIn
+	fm["InsertFieldBinding"] = GenInsertFieldBinding
 	fm["UpdateFieldBinding"] = GenUpdateFieldBinding
+	fm["ParamName"] = ParamName
+	fm["PkFieldName"] = PkFieldName
 	return fm
+}
+
+func PkFieldName(model *ModelSpecs) string {
+	column := lookupPkColumn(model)
+	if column == nil {
+		return ""
+	}
+	return column.Property
+}
+
+func ParamName(params *types.Tuple, i int) string {
+	return params.At(i).Name()
 }
 
 func IsQueryIn(pt *parser.PartTree) bool {
