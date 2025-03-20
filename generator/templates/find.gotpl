@@ -1,49 +1,49 @@
 func (r {{ .Receiver }}) {{ .Name }}({{ Params .Params }}) {{ Results .Results }} {
 	{{- if IsReturnSliceModel .Results }}
-	var m {{ ResultModel .Results }}
-    {{- if IsQueryIn .PartTree }}
-	query, args, err := sqlx.In("{{ SelectClause .PartTree .Model }} {{ FromClause .TableName }} {{ WhereClausePredicate .PartTree .Params .Model }}", {{ VarBinding .Params }})
-	if err != nil {
-		return nil, err
-	}
-	query = r.db.Rebind(query)
-	err = r.db.SelectContext({{ CtxParam .Params }}, &m, query, args...)
-	if err != nil {
-		return nil, err
-	}
-    return m, nil
-    {{- else }}
-	err := sqlx.SelectContext({{ CtxParam .Params }}, r.db, &m, "{{ SelectClause .PartTree .Model }} {{ FromClause .TableName }} {{ WhereClausePredicate .PartTree .Params .Model }}", {{ VarBinding .Params }})
-	if err != nil {
-		return nil, err
-	}
-	return m, nil
-	{{- end }}
-	{{- else }}
-	var m {{ ResultModel .Results }}
-	{{- if IsQueryIn .PartTree }}
-	query, args, err := sqlx.In("{{ SelectClause .PartTree .Model }} {{ FromClause .TableName }} {{ WhereClausePredicate .PartTree .Params .Model }}", {{ VarBinding .Params }})
-	if err != nil {
-		return nil, err
-	}
-	query = r.db.Rebind(query)
-	err = r.db.QueryRowxContext({{ CtxParam .Params }}, &m, query, args...)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, nil
+		var m {{ ResultModel .Results }}
+		{{- if IsQueryIn .PartTree }}
+			query, args, err := sqlx.In("{{- SelectClause .PartTree .Model -}} {{- FromClause .TableName -}} {{- WhereClausePredicate .PartTree .Params .Model -}} {{- OrderByClause .PartTree .Model -}} {{- LimitClause .PartTree -}}", {{ VarBinding .Params }})
+		if err != nil {
+			return nil, err
 		}
-		return nil, err
-	}
-	return &m, nil
-	{{- else }}
-	err := r.db.QueryRowxContext({{ CtxParam .Params }}, "{{ SelectClause .PartTree .Model }} {{ FromClause .TableName }} {{ WhereClausePredicate .PartTree .Params .Model }}", {{ VarBinding .Params }}).StructScan(&m)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, nil
+		query = r.db.Rebind(query)
+		err = r.db.SelectContext({{ CtxParam .Params }}, &m, query, args...)
+		if err != nil {
+			return nil, err
 		}
-		return nil, err
-	}
-	return &m, nil
-	{{- end }}
+		return m, nil
+		{{- else }}
+			err := sqlx.SelectContext({{ CtxParam .Params }}, r.db, &m, "{{- SelectClause .PartTree .Model -}} {{- FromClause .TableName -}} {{- WhereClausePredicate .PartTree .Params .Model -}} {{- OrderByClause .PartTree .Model -}} {{- LimitClause .PartTree -}}", {{ VarBinding .Params }})
+		if err != nil {
+			return nil, err
+		}
+		return m, nil
+		{{- end }}
+	{{- else }}
+		var m {{ ResultModel .Results }}
+		{{- if IsQueryIn .PartTree }}
+		query, args, err := sqlx.In("{{- SelectClause .PartTree .Model -}} {{- FromClause .TableName -}} {{- WhereClausePredicate .PartTree .Params .Model -}} {{- OrderByClause .PartTree .Model -}} {{- LimitClause .PartTree -}}", {{ VarBinding .Params }})
+		if err != nil {
+			return nil, err
+		}
+		query = r.db.Rebind(query)
+		err = r.db.QueryRowxContext({{ CtxParam .Params }}, &m, query, args...)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				return nil, nil
+			}
+			return nil, err
+		}
+		return &m, nil
+		{{- else }}
+		err := r.db.QueryRowxContext({{ CtxParam .Params }}, "{{- SelectClause .PartTree .Model -}} {{- FromClause .TableName -}} {{- WhereClausePredicate .PartTree .Params .Model -}} {{- OrderByClause .PartTree .Model -}} {{- LimitClause .PartTree -}}", {{ VarBinding .Params }}).StructScan(&m)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				return nil, nil
+			}
+			return nil, err
+		}
+		return &m, nil
+		{{- end }}
 	{{- end }}
 }

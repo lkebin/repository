@@ -32,7 +32,7 @@ func ParseModel(tps, patterns []string, tags []string) []ModelSpecs {
 		Mode:       packages.NeedName | packages.NeedTypes | packages.NeedTypesInfo | packages.NeedSyntax | packages.NeedImports | packages.NeedDeps,
 		Tests:      false,
 		BuildFlags: []string{fmt.Sprintf("-tags=%s", strings.Join(tags, " "))},
-		Logf:       log.Printf,
+		// Logf:       log.Printf,
 	}
 	pkgs, err := packages.Load(cfg, patterns...)
 	if err != nil {
@@ -69,7 +69,6 @@ func ParseModel(tps, patterns []string, tags []string) []ModelSpecs {
 						}
 					}
 
-					log.Println(ts.Name)
 					rt.Struct = pkgs[0].TypesInfo.Defs[ts.Name].Type().Underlying().(*types.Struct)
 					rt.Type = pkgs[0].TypesInfo.Defs[ts.Name].Type()
 
@@ -89,7 +88,7 @@ func ParseRepository(tps, patterns []string, tags []string) []RepositorySpecs {
 		Mode:       packages.NeedName | packages.NeedTypes | packages.NeedTypesInfo | packages.NeedSyntax | packages.NeedImports | packages.NeedDeps,
 		Tests:      false,
 		BuildFlags: []string{fmt.Sprintf("-tags=%s", strings.Join(tags, " "))},
-		Logf:       log.Printf,
+		// Logf:       log.Printf,
 	}
 	pkgs, err := packages.Load(cfg, patterns...)
 	if err != nil {

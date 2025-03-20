@@ -3,10 +3,11 @@ package parser
 import (
 	"errors"
 	"regexp"
+	"strings"
 )
 
 var (
-	blockSplit            = "(?<=Asc|Desc)(?=\\p{Lu})"
+	blockSplit            = regexp.MustCompile(`(Asc|Desc)(\p{Lu})`)
 	directionSplit        = regexp.MustCompile("(.+?)(Asc|Desc)?$")
 	directionKeywords     = []string{"Asc", "Desc"}
 	ErrInvalidOrderSyntax = errors.New("Invalid order-by clause syntax")
@@ -28,16 +29,17 @@ func NewOrderBySource(clause string) (*OrderBySource, error) {
 
 	orderBySource := &OrderBySource{}
 
-	split := regexp.MustCompile(blockSplit).Split(clause, -1)
+	replaced := blockSplit.ReplaceAllString(clause, "$1 $2")
+	parts := strings.Split(replaced, " ")
 
-	for _, part := range split {
-		matcher := directionSplit.FindAllString(part, -1)
-		if matcher != nil {
+	for _, part := range parts {
+		matcher := directionSplit.FindAllStringSubmatch(part, -1)
+		if matcher == nil {
 			return nil, ErrInvalidOrderSyntax
 		}
 
-		propertyString := matcher[1]
-		directionString := matcher[2]
+		propertyString := matcher[0][1]
+		directionString := matcher[0][2]
 
 		if directionString == "" {
 			return nil, ErrInvalidOrderSyntax

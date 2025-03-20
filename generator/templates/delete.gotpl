@@ -1,5 +1,5 @@
 func (r {{ .Receiver }}) {{ .Name }}({{ Params .Params }}) {{ Results .Results }} {
-	_, err := r.db.ExecContext({{ CtxParam .Params }}, "DELETE {{ FromClause .TableName }} {{ WhereClausePredicate .PartTree .Params .Model }}", {{ VarBinding .Params }})
+	_, err := r.db.ExecContext({{ CtxParam .Params }}, "{{- DeleteClause .TableName -}} {{- WhereClausePredicate .PartTree .Params .Model -}}", {{ VarBinding .Params }})
 	if err != nil {
 		return err
 	}

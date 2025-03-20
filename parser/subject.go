@@ -8,11 +8,11 @@ import (
 
 var (
 	distinct             = "Distinct"
-	countByTemplate      = regexp.MustCompile("^" + countPattern + "(\\p{Lu}.*?)??By")
-	existsByTemplate     = regexp.MustCompile("^" + existsPattern + "(\\p{Lu}.*?)??By")
-	deleteByTemplate     = regexp.MustCompile("^" + deletePattern + "(\\p{Lu}.*?)??By")
-	limitingQueryPattern = "(First|Top)(\\d*)?"
-	limitedQueryTemplate = regexp.MustCompile("^(" + queryPattern + ")(" + distinct + ")?" + limitingQueryPattern + "(\\p{Lu}.*?)??By")
+	countByTemplate      = regexp.MustCompile(`^` + countPattern + `(\p{Lu}.*?)??By`)
+	existsByTemplate     = regexp.MustCompile(`^` + existsPattern + `(\p{Lu}.*?)??By`)
+	deleteByTemplate     = regexp.MustCompile(`^` + deletePattern + `(\p{Lu}.*?)??By`)
+	limitingQueryPattern = `(First|Top)(\d*)?`
+	limitedQueryTemplate = regexp.MustCompile(`^(` + queryPattern + `)(` + distinct + `)?` + limitingQueryPattern + `(\p{Lu}.*?)??By`)
 )
 
 type Subject struct {

@@ -218,9 +218,12 @@ func funcMap() template.FuncMap {
 	fm["SelectClause"] = GenSelectClause
 	fm["InsertClause"] = GenInsertClause
 	fm["UpdateClause"] = GenUpdateClause
+	fm["DeleteClause"] = GenDeleteClause
 	fm["FromClause"] = GenFromClause
 	fm["WhereClausePredicate"] = GenWhereClausePredicate
 	fm["WhereClause"] = GenWhereClause
+	fm["OrderByClause"] = GenOrderByClause
+	fm["LimitClause"] = GenLimitClause
 	fm["VarBinding"] = GenVarBinding
 	fm["ResultModel"] = GenResultModel
 	fm["IsReturnSliceModel"] = IsReturnSliceModel
@@ -231,6 +234,49 @@ func funcMap() template.FuncMap {
 	fm["ParamName"] = ParamName
 	fm["PkFieldName"] = PkFieldName
 	return fm
+}
+
+func GenOrderByClause(pt *parser.PartTree, m *ModelSpecs) string {
+	var s = &strings.Builder{}
+	if pt.Predicate.OrderBySource != nil {
+		s.WriteString(" ORDER BY ")
+		for k, v := range pt.Predicate.OrderBySource.Orders {
+			column := lookupColumnByProperty(v.Property, m)
+			if column == nil {
+				log.Panicf("column not found: %s", v.Property)
+			}
+
+			s.WriteString(column.Name)
+			s.WriteString(" ")
+			s.WriteString(strings.ToUpper(v.Direction))
+			if k < len(pt.Predicate.OrderBySource.Orders)-1 {
+				s.WriteString(", ")
+			}
+		}
+	}
+
+	return s.String()
+}
+
+func GenLimitClause(pt *parser.PartTree) string {
+	if pt.Subject.IsLimiting {
+		return fmt.Sprintf(" LIMIT %d", pt.Subject.MaxResults)
+	}
+	return ""
+}
+
+func lookupColumnByProperty(property string, m *ModelSpecs) *Column {
+	for i := 0; i < m.Struct.NumFields(); i++ {
+		if m.Struct.Field(i).Name() == property {
+			tag := reflect.StructTag(m.Struct.Tag(i))
+			columnName, _ := ParseTag(tag.Get("db"))
+			return &Column{
+				Name:     columnName,
+				Property: property,
+			}
+		}
+	}
+	return nil
 }
 
 func PkFieldName(model *ModelSpecs) string {
@@ -422,6 +468,10 @@ func GenInsertClause(tableName string, model *ModelSpecs) string {
 	return s.String()
 }
 
+func GenDeleteClause(tableName string) string {
+	return fmt.Sprintf("DELETE FROM `%s`", tableName)
+}
+
 func GenUpdateClause(tableName string, model *ModelSpecs) string {
 	columns := GenUpdateColumns(model)
 
@@ -464,7 +514,7 @@ func GenSelectClause(pt *parser.PartTree, m *ModelSpecs) string {
 }
 
 func GenFromClause(tableName string) string {
-	return fmt.Sprintf("FROM `%s`", tableName)
+	return fmt.Sprintf(" FROM `%s`", tableName)
 }
 
 func parseOperator(pt parser.PartType) (string, error) {
@@ -521,7 +571,7 @@ func parseOperator(pt parser.PartType) (string, error) {
 
 func GenWhereClause(columns []*Column) string {
 	var s = &strings.Builder{}
-	s.WriteString("WHERE ")
+	s.WriteString(" WHERE ")
 	for i, v := range columns {
 		s.WriteString("`")
 		s.WriteString(v.Name)
@@ -546,7 +596,7 @@ func GenWhereClausePredicate(pt *parser.PartTree, params *types.Tuple, m *ModelS
 	}
 	columns := lookupColumns(m)
 	var s = &strings.Builder{}
-	s.WriteString("WHERE ")
+	s.WriteString(" WHERE ")
 	numberOfNodes := len(pt.Predicate.Nodes)
 	for k, v := range pt.Predicate.Nodes {
 		if numberOfNodes > 1 {
