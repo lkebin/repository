@@ -164,7 +164,7 @@ func getFuncImpl(implName string, model *ModelSpecs, m *types.Func) (string, err
 		}
 
 		if err := template.Must(template.New("").Funcs(funcMap()).Parse(findTpl)).Execute(tpl, fn); err != nil {
-			return "", err
+			return "", fmt.Errorf("find template execute error: %w", err)
 		}
 	case m.Name() == "Update":
 		pkColumn := lookupPkColumn(model)
@@ -173,11 +173,11 @@ func getFuncImpl(implName string, model *ModelSpecs, m *types.Func) (string, err
 		}
 		fn.WhereColumns = []*Column{{Name: pkColumn.Name}}
 		if err := template.Must(template.New("").Funcs(funcMap()).Parse(updateTpl)).Execute(tpl, fn); err != nil {
-			return "", err
+			return "", fmt.Errorf("update template execute error: %w", err)
 		}
 	case m.Name() == "Create":
 		if err := template.Must(template.New("").Funcs(funcMap()).Parse(createTpl)).Execute(tpl, fn); err != nil {
-			return "", err
+			return "", fmt.Errorf("create template execute error: %w", err)
 		}
 	case strings.HasPrefix(m.Name(), "Delete"):
 		if m.Name() == "Delete" {
@@ -199,7 +199,7 @@ func getFuncImpl(implName string, model *ModelSpecs, m *types.Func) (string, err
 		}
 
 		if err := template.Must(template.New("").Funcs(funcMap()).Parse(deleteTpl)).Execute(tpl, fn); err != nil {
-			return "", err
+			return "", fmt.Errorf("delete template execute error: %w", err)
 		}
 	}
 
@@ -374,17 +374,17 @@ func GenUpdateFieldBinding(params *types.Tuple, model *ModelSpecs) string {
 	var s = &strings.Builder{}
 	for i := 0; i < model.Struct.NumFields(); i++ {
 		tag := reflect.StructTag(model.Struct.Tag(i))
-		cn, opts := ParseTag(tag.Get("db"))
+		columnName, opts := ParseTag(tag.Get("db"))
 		if opts.Contains("pk") {
 			pkFieldName = model.Struct.Field(i).Name()
 		}
 
 		for _, v := range columns {
-			if v.Name == cn {
+			if v.Name == columnName {
 				s.WriteString(paramName)
 				s.WriteString(".")
 				s.WriteString(model.Struct.Field(i).Name())
-				if i < model.Struct.NumFields()-1 {
+				if i < len(columns) {
 					s.WriteString(", ")
 				}
 			}
