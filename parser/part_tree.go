@@ -12,6 +12,7 @@ var (
 	deletePattern   = "Delete|Remove"
 	prefixTemplate  = regexp.MustCompile("^(" + queryPattern + "|" + countPattern + "|" + existsPattern + "|" + deletePattern + ")((\\p{Lu}.*?))??By")
 	keywordTemplate = "(%s)(?=(\\p{Lu}|\\P{InBASIC_LATIN}))"
+	and             = regexp.MustCompile("And([A-Z])")
 )
 
 type PartTree struct {
@@ -50,9 +51,8 @@ type OrPart struct {
 func NewOrPart(source string, isAlwaysIgnoreCase bool) *OrPart {
 	orPart := &OrPart{}
 
-	split := strings.Split(source, "And")
-
-	for _, part := range split {
+	withoutAnd := and.ReplaceAllString(source, " $1")
+	for _, part := range strings.Split(withoutAnd, " ") {
 		orPart.Children = append(orPart.Children, NewPart(part, isAlwaysIgnoreCase))
 	}
 

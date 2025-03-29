@@ -15,6 +15,7 @@ type Predicate struct {
 var (
 	allIgnoreCase = regexp.MustCompile("AllIgnor(ing|e)Case")
 	orderBy       = "OrderBy"
+	or            = regexp.MustCompile("Or([A-Z])")
 )
 
 func NewPredicate(predicate string) (*Predicate, error) {
@@ -25,7 +26,8 @@ func NewPredicate(predicate string) (*Predicate, error) {
 		return nil, errors.New("OrderBy must not be used more than once in a query method name")
 	}
 
-	for _, v := range strings.Split(parts[0], "Or") {
+	withoutOr := or.ReplaceAllString(parts[0], " $1")
+	for _, v := range strings.Split(withoutOr, " ") {
 		p.Nodes = append(p.Nodes, NewOrPart(v, p.IsAlwaysIgnoreCase))
 	}
 
