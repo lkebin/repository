@@ -1,3 +1,4 @@
+{{ define "FindBy" }}
 func (r {{ .Receiver }}) {{ .Name }}({{ Params .Params }}) {{ Results .Results }} {
 	{{- if IsReturnSliceModel .Results }}
 		var m {{ ResultModel .Results }}
@@ -47,3 +48,15 @@ func (r {{ .Receiver }}) {{ .Name }}({{ Params .Params }}) {{ Results .Results }
 		{{- end }}
 	{{- end }}
 }
+{{ end }}
+
+{{ define "FindAll" }}
+func (r {{ .Receiver }}) {{ .Name }}({{ Params .Params }}) {{ Results .Results }} {
+	var m {{ ResultModel .Results }}
+	err := sqlx.SelectContext({{ CtxParam .Params }}, r.db, &m, "{{- SelectClause .PartTree .Model -}} {{- FromClause .TableName -}}")
+	if err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+{{ end }}

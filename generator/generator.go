@@ -18,6 +18,12 @@ import (
 //go:embed templates/find.gotpl
 var findTpl string
 
+//go:embed templates/exists.gotpl
+var existsTpl string
+
+//go:embed templates/count.gotpl
+var countTpl string
+
 //go:embed templates/create.gotpl
 var createTpl string
 
@@ -35,7 +41,7 @@ func GenerateRepositoryImplements(spec *RepositorySpecs) ([]byte, error) {
 	tpl.WriteString("\n")
 	// Imports
 	tpl.WriteString("import (\n")
-	imports := map[string]any{}
+	imports := make(map[string]any)
 	imports["github.com/jmoiron/sqlx"] = nil
 	imports["database/sql"] = nil
 	for _, v := range spec.Methods {
@@ -143,28 +149,17 @@ func getFuncImpl(implName string, model *ModelSpecs, m *types.Func) (string, err
 		TableName: ToSnakeCase(model.Name),
 		Model:     model,
 	}
-	switch {
-	case strings.HasPrefix(m.Name(), "Find"):
-		if m.Name() == "Find" {
-			pkColumn := lookupPkColumn(model)
-			if pkColumn == nil {
-				return "", fmt.Errorf("pk column not found")
-			}
-			pt, err := parser.NewPartTree("FindBy" + pkColumn.Property)
-			if err != nil {
-				return "", err
-			}
-			fn.PartTree = pt
-		} else {
-			pt, err := parser.NewPartTree(m.Name())
-			if err != nil {
-				return "", err
-			}
-			fn.PartTree = pt
-		}
 
-		if err := template.Must(template.New("").Funcs(funcMap()).Parse(findTpl)).Execute(tpl, fn); err != nil {
-			return "", fmt.Errorf("find template execute error: %w", err)
+	pt, err := parser.NewPartTree(m.Name())
+	if err != nil {
+		return "", err
+	}
+	fn.PartTree = pt
+
+	switch {
+	case m.Name() == "Create":
+		if err := template.Must(template.New("").Funcs(funcMap()).Parse(createTpl)).Execute(tpl, fn); err != nil {
+			return "", fmt.Errorf("create template execute error: %w", err)
 		}
 	case m.Name() == "Update":
 		pkColumn := lookupPkColumn(model)
@@ -175,31 +170,73 @@ func getFuncImpl(implName string, model *ModelSpecs, m *types.Func) (string, err
 		if err := template.Must(template.New("").Funcs(funcMap()).Parse(updateTpl)).Execute(tpl, fn); err != nil {
 			return "", fmt.Errorf("update template execute error: %w", err)
 		}
-	case m.Name() == "Create":
-		if err := template.Must(template.New("").Funcs(funcMap()).Parse(createTpl)).Execute(tpl, fn); err != nil {
-			return "", fmt.Errorf("create template execute error: %w", err)
+	case m.Name() == "Count":
+		if err := template.Must(template.New("").Funcs(funcMap()).Parse(countTpl)).ExecuteTemplate(tpl, "Count", fn); err != nil {
+			return "", fmt.Errorf("count all template execute error: %w", err)
 		}
-	case strings.HasPrefix(m.Name(), "Delete"):
-		if m.Name() == "Delete" {
-			pkColumn := lookupPkColumn(model)
-			if pkColumn == nil {
-				return "", fmt.Errorf("pk column not found")
-			}
-			pt, err := parser.NewPartTree("DeleteBy" + pkColumn.Property)
-			if err != nil {
-				return "", err
-			}
-			fn.PartTree = pt
-		} else {
-			pt, err := parser.NewPartTree(m.Name())
-			if err != nil {
-				return "", err
-			}
-			fn.PartTree = pt
+	case m.Name() == "FindById":
+		pkColumn := lookupPkColumn(model)
+		if pkColumn == nil {
+			return "", fmt.Errorf("pk column not found")
+		}
+		pt, err := parser.NewPartTree("FindBy" + pkColumn.Property)
+		if err != nil {
+			return "", err
+		}
+		fn.PartTree = pt
+		if err := template.Must(template.New("").Funcs(funcMap()).Parse(findTpl)).ExecuteTemplate(tpl, "FindBy", fn); err != nil {
+			return "", fmt.Errorf("find by id template execute error: %w", err)
 		}
 
+	case m.Name() == "FindAll":
+		if err := template.Must(template.New("").Funcs(funcMap()).Parse(findTpl)).ExecuteTemplate(tpl, "FindAll", fn); err != nil {
+			return "", fmt.Errorf("find all template execute error: %w", err)
+		}
+	case m.Name() == "ExistsById":
+		pkColumn := lookupPkColumn(model)
+		if pkColumn == nil {
+			return "", fmt.Errorf("pk column not found")
+		}
+		pt, err := parser.NewPartTree("ExistsBy" + pkColumn.Property)
+		if err != nil {
+			return "", err
+		}
+		fn.PartTree = pt
+		if err := template.Must(template.New("").Funcs(funcMap()).Parse(existsTpl)).Execute(tpl, fn); err != nil {
+			return "", fmt.Errorf("exists template execute error: %w", err)
+		}
+
+	case m.Name() == "DeleteById":
+		pkColumn := lookupPkColumn(model)
+		if pkColumn == nil {
+			return "", fmt.Errorf("pk column not found")
+		}
+		pt, err := parser.NewPartTree("DeleteBy" + pkColumn.Property)
+		if err != nil {
+			return "", err
+		}
+		fn.PartTree = pt
 		if err := template.Must(template.New("").Funcs(funcMap()).Parse(deleteTpl)).Execute(tpl, fn); err != nil {
 			return "", fmt.Errorf("delete template execute error: %w", err)
+		}
+
+	case pt.Subject != &parser.Subject{}: // A valid subject
+		if pt.Subject.IsCount {
+			if err := template.Must(template.New("").Funcs(funcMap()).Parse(countTpl)).ExecuteTemplate(tpl, "CountBy", fn); err != nil {
+				return "", fmt.Errorf("count template execute error: %w", err)
+			}
+		} else if pt.Subject.IsExists {
+			if err := template.Must(template.New("").Funcs(funcMap()).Parse(existsTpl)).Execute(tpl, fn); err != nil {
+				return "", fmt.Errorf("exists template execute error: %w", err)
+			}
+		} else if pt.Subject.IsDelete {
+			if err := template.Must(template.New("").Funcs(funcMap()).Parse(deleteTpl)).Execute(tpl, fn); err != nil {
+				return "", fmt.Errorf("delete template execute error: %w", err)
+			}
+		} else {
+			if err := template.Must(template.New("").Funcs(funcMap()).Parse(findTpl)).ExecuteTemplate(tpl, "FindBy", fn); err != nil {
+				return "", fmt.Errorf("find template execute error: %w", err)
+			}
 		}
 	}
 
@@ -216,6 +253,8 @@ func funcMap() template.FuncMap {
 	fm["CtxParam"] = GenCtxParam
 	fm["Results"] = GenResults
 	fm["SelectClause"] = GenSelectClause
+	fm["ExistsClause"] = GenCountClause
+	fm["CountClause"] = GenCountClause
 	fm["InsertClause"] = GenInsertClause
 	fm["UpdateClause"] = GenUpdateClause
 	fm["DeleteClause"] = GenDeleteClause
@@ -510,6 +549,16 @@ func GenSelectClause(pt *parser.PartTree, m *ModelSpecs) string {
 		}
 	}
 
+	return s.String()
+}
+
+func GenCountClause(pt *parser.PartTree, m *ModelSpecs) string {
+	pkColumn := lookupPkColumn(m)
+	var s = &strings.Builder{}
+	s.WriteString("SELECT ")
+	s.WriteString("COUNT(`")
+	s.WriteString(pkColumn.Name)
+	s.WriteString("`)")
 	return s.String()
 }
 

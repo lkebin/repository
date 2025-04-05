@@ -6,13 +6,12 @@ import (
 )
 
 var (
-	queryPattern    = "Find|Read|Get|Query|Search|Stream"
-	countPattern    = "Count"
-	existsPattern   = "Exists"
-	deletePattern   = "Delete|Remove"
-	prefixTemplate  = regexp.MustCompile("^(" + queryPattern + "|" + countPattern + "|" + existsPattern + "|" + deletePattern + ")((\\p{Lu}.*?))??By")
-	keywordTemplate = "(%s)(?=(\\p{Lu}|\\P{InBASIC_LATIN}))"
-	and             = regexp.MustCompile("And([A-Z])")
+	queryPattern   = `Find|Read|Get|Query|Search|Stream`
+	countPattern   = `Count`
+	existsPattern  = `Exists`
+	deletePattern  = `Delete|Remove`
+	prefixTemplate = regexp.MustCompile(`^(` + queryPattern + `|` + countPattern + `|` + existsPattern + `|` + deletePattern + `)((\p{Lu}.*?))??By`)
+	andPattern     = regexp.MustCompile("And([A-Z])")
 )
 
 type PartTree struct {
@@ -51,7 +50,7 @@ type OrPart struct {
 func NewOrPart(source string, isAlwaysIgnoreCase bool) *OrPart {
 	orPart := &OrPart{}
 
-	withoutAnd := and.ReplaceAllString(source, " $1")
+	withoutAnd := andPattern.ReplaceAllString(source, " $1")
 	for _, part := range strings.Split(withoutAnd, " ") {
 		orPart.Children = append(orPart.Children, NewPart(part, isAlwaysIgnoreCase))
 	}

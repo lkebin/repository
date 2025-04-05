@@ -1,0 +1,8 @@
+func (r {{ .Receiver }}) {{ .Name }}({{ Params .Params }}) {{ Results .Results }} {
+	var cnt int64
+	err := r.db.QueryRowxContext({{ CtxParam .Params }}, "{{- ExistsClause .PartTree .Model -}} {{- FromClause .TableName -}} {{- WhereClausePredicate .PartTree .Params .Model -}}", {{ VarBinding .Params }}).Scan(&cnt)
+	if err != nil {
+		return false, err
+	}
+	return cnt > 0, nil
+}

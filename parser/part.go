@@ -11,7 +11,7 @@ const (
 )
 
 var (
-	ignoreCase = regexp.MustCompile("Ignor(ing|e)Case")
+	ignoreCase = regexp.MustCompile(`Ignor(ing|e)Case`)
 )
 
 type Part struct {
