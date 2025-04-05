@@ -15,7 +15,7 @@ type Predicate struct {
 var (
 	allIgnoreCase = regexp.MustCompile(`AllIgnor(ing|e)Case`)
 	orderBy       = `OrderBy`
-	orPattern     = regexp.MustCompile(`Or([A-Z])`)
+	orPattern     = regexp.MustCompile(`Or(\p{Lu})`)
 )
 
 func NewPredicate(predicate string) (*Predicate, error) {

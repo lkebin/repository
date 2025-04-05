@@ -11,7 +11,7 @@ var (
 	existsPattern  = `Exists`
 	deletePattern  = `Delete|Remove`
 	prefixTemplate = regexp.MustCompile(`^(` + queryPattern + `|` + countPattern + `|` + existsPattern + `|` + deletePattern + `)((\p{Lu}.*?))??By`)
-	andPattern     = regexp.MustCompile("And([A-Z])")
+	andPattern     = regexp.MustCompile(`And(\p{Lu})`)
 )
 
 type PartTree struct {
