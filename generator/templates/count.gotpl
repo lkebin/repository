@@ -1,5 +1,5 @@
 {{ define "Count" }}
-func (r {{ .Receiver }}) {{ .Name }}({{ Params .Params }}) {{ Results .Results }} {
+func (r {{ .Receiver }}) {{ .Name }}({{ Params .Params .Repository }}) {{ Results .Results .Repository }} {
 	var cnt int64
 	err := r.db.QueryRowxContext({{ CtxParam .Params }}, "{{- CountClause .PartTree .Model -}} {{- FromClause .TableName -}}").Scan(&cnt)
 	if err != nil {
@@ -10,7 +10,7 @@ func (r {{ .Receiver }}) {{ .Name }}({{ Params .Params }}) {{ Results .Results }
 {{ end }}
 
 {{ define "CountBy" }}
-func (r {{ .Receiver }}) {{ .Name }}({{ Params .Params }}) {{ Results .Results }} {
+func (r {{ .Receiver }}) {{ .Name }}({{ Params .Params .Repository }}) {{ Results .Results .Repository }} {
 	var cnt int64
 	err := r.db.QueryRowxContext({{ CtxParam .Params }}, "{{- CountClause .PartTree .Model -}} {{- FromClause .TableName -}} {{- WhereClausePredicate .PartTree .Params .Model -}}", {{ VarBinding .Params }}).Scan(&cnt)
 	if err != nil {

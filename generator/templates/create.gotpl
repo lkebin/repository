@@ -1,4 +1,4 @@
-func (r {{ .Receiver }}) {{ .Name }}({{ Params .Params }}) {{ Results .Results }} {
+func (r {{ .Receiver }}) {{ .Name }}({{ Params .Params .Repository }}) {{ Results .Results .Repository }} {
     {{- if IsPkAutoIncrement .Model }}
 	result, err := r.db.ExecContext(ctx, "{{ InsertClause .TableName .Model }}", {{ InsertFieldBinding .Params .Model }})
 	if err != nil {

@@ -1,5 +1,5 @@
 //go:generate ../repository -type=UserRepository,UserUuidRepository
-package testdata
+package example
 
 import (
 	"context"
@@ -21,7 +21,7 @@ type UserRepository interface {
 }
 
 type UserUuidRepository interface {
-	repository.CrudRepository[UserUuid, repository.ID]
+	repository.CrudRepository[UserUuid, ID]
 
 	FindByName(ctx context.Context, name string) (*UserUuid, error)
 }

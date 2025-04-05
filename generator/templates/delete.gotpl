@@ -1,4 +1,4 @@
-func (r {{ .Receiver }}) {{ .Name }}({{ Params .Params }}) {{ Results .Results }} {
+func (r {{ .Receiver }}) {{ .Name }}({{ Params .Params .Repository }}) {{ Results .Results .Repository }} {
 	_, err := r.db.ExecContext({{ CtxParam .Params }}, "{{- DeleteClause .TableName -}} {{- WhereClausePredicate .PartTree .Params .Model -}}", {{ VarBinding .Params }})
 	if err != nil {
 		return err

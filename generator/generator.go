@@ -47,13 +47,13 @@ func GenerateRepositoryImplements(spec *RepositorySpecs) ([]byte, error) {
 	for _, v := range spec.Methods {
 		for i := 0; i < v.Signature().Params().Len(); i++ {
 			importPath := lookupPkgPath(v.Signature().Params().At(i).Type())
-			if importPath != "" {
+			if importPath != "" && importPath != spec.Pkg.Path() {
 				imports[importPath] = nil
 			}
 		}
 		for i := 0; i < v.Signature().Results().Len(); i++ {
 			importPath := lookupPkgPath(v.Signature().Results().At(i).Type())
-			if importPath != "" {
+			if importPath != "" && importPath != spec.Pkg.Path() {
 				imports[importPath] = nil
 			}
 		}
@@ -87,7 +87,7 @@ func GenerateRepositoryImplements(spec *RepositorySpecs) ([]byte, error) {
 
 	// Implements
 	for _, v := range spec.Methods {
-		fn, err := getFuncImpl(implName, model, v)
+		fn, err := genFuncImpl(implName, model, v, spec)
 		if err != nil {
 			return nil, err
 		}
@@ -98,7 +98,7 @@ func GenerateRepositoryImplements(spec *RepositorySpecs) ([]byte, error) {
 	return format.Source([]byte(tpl.String()))
 }
 
-func parseTuple(params *types.Tuple) string {
+func parseTuple(params *types.Tuple, spec *RepositorySpecs) string {
 	var p = &strings.Builder{}
 	for i := 0; i < params.Len(); i++ {
 		// Name
@@ -108,8 +108,14 @@ func parseTuple(params *types.Tuple) string {
 		}
 
 		// Type
-		if importPath := lookupPkgPath(params.At(i).Type()); importPath != "" {
-			p.WriteString(strings.ReplaceAll(params.At(i).Type().String(), importPath, strings.Split(importPath, "/")[len(strings.Split(importPath, "/"))-1]))
+		importPath := lookupPkgPath(params.At(i).Type())
+		if importPath != "" {
+			// If parameter pkg path is equal to repository pkg path, should not include pkg name in type
+			if importPath == spec.Pkg.Path() {
+				p.WriteString(strings.ReplaceAll(params.At(i).Type().String(), fmt.Sprintf("%s.", importPath), ""))
+			} else {
+				p.WriteString(strings.ReplaceAll(params.At(i).Type().String(), importPath, strings.Split(importPath, "/")[len(strings.Split(importPath, "/"))-1]))
+			}
 		} else {
 			p.WriteString(params.At(i).Type().String())
 		}
@@ -129,6 +135,7 @@ type FuncImpl struct {
 	Params        *types.Tuple
 	Results       *types.Tuple
 	Model         *ModelSpecs
+	Repository    *RepositorySpecs
 	SelectColumns []*Column
 	WhereColumns  []*Column
 	PartTree      *parser.PartTree
@@ -139,15 +146,16 @@ type Column struct {
 	Property string
 }
 
-func getFuncImpl(implName string, model *ModelSpecs, m *types.Func) (string, error) {
+func genFuncImpl(implName string, model *ModelSpecs, m *types.Func, spec *RepositorySpecs) (string, error) {
 	var tpl = &strings.Builder{}
 	fn := FuncImpl{
-		Name:      m.Name(),
-		Receiver:  fmt.Sprintf("*%s", implName),
-		Params:    m.Signature().Params(),
-		Results:   m.Signature().Results(),
-		TableName: ToSnakeCase(model.Name),
-		Model:     model,
+		Name:       m.Name(),
+		Receiver:   fmt.Sprintf("*%s", implName),
+		Params:     m.Signature().Params(),
+		Results:    m.Signature().Results(),
+		TableName:  ToSnakeCase(model.Name),
+		Model:      model,
+		Repository: spec,
 	}
 
 	pt, err := parser.NewPartTree(m.Name())
@@ -341,8 +349,8 @@ func IsQueryIn(pt *parser.PartTree) bool {
 	return false
 }
 
-func GenParams(params *types.Tuple) string {
-	return parseTuple(params)
+func GenParams(params *types.Tuple, spec *RepositorySpecs) string {
+	return parseTuple(params, spec)
 }
 
 func GenCtxParam(params *types.Tuple) string {
@@ -351,14 +359,14 @@ func GenCtxParam(params *types.Tuple) string {
 			return params.At(i).Name()
 		}
 	}
-	return "ctx1"
+	return "ctx"
 }
 
-func GenResults(results *types.Tuple) string {
+func GenResults(results *types.Tuple, spec *RepositorySpecs) string {
 	if results.Len() > 1 {
-		return fmt.Sprintf("(%s)", parseTuple(results))
+		return fmt.Sprintf("(%s)", parseTuple(results, spec))
 	}
-	return parseTuple(results)
+	return parseTuple(results, spec)
 }
 
 func GenInsertFieldBinding(params *types.Tuple, model *ModelSpecs) string {
