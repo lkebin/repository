@@ -9,13 +9,13 @@ func (r {{ .Receiver }}) {{ .Name }}({{ Params .Params }}) {{ Results .Results }
 	if err != nil {
 		return nil, err
 	}
-	return r.Find({{ CtxParam .Params }}, id)
+	return r.FindById({{ CtxParam .Params }}, id)
 	{{- else }}
 	_, err := r.db.ExecContext(ctx, "{{ InsertClause .TableName .Model }}", {{ InsertFieldBinding .Params .Model }})
 	if err != nil {
 		return nil, err
 	}
 
-	return r.Find({{ CtxParam .Params }}, {{ ParamName .Params 1 }}.{{ PkFieldName .Model }})
+	return r.FindById({{ CtxParam .Params }}, {{ ParamName .Params 1 }}.{{ PkFieldName .Model }})
     {{- end }}
 }
