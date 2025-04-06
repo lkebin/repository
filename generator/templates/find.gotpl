@@ -8,7 +8,7 @@ func (r {{ .Receiver }}) {{ .Name }}({{ Params .Params .Repository }}) {{ Result
 			return nil, err
 		}
 		query = r.db.Rebind(query)
-		err = r.db.SelectContext({{ CtxParam .Params }}, &m, query, args...)
+		err = sqlx.SelectContext({{ CtxParam .Params }}, r.db, &m, query, args...)
 		if err != nil {
 			return nil, err
 		}

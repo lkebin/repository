@@ -103,7 +103,7 @@ func (r *userRepositoryImpl) FindByNameAndBirthdayIn(ctx context.Context, name s
 		return nil, err
 	}
 	query = r.db.Rebind(query)
-	err = r.db.SelectContext(ctx, &m, query, args...)
+	err = sqlx.SelectContext(ctx, r.db, &m, query, args...)
 	if err != nil {
 		return nil, err
 	}
