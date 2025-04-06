@@ -51,7 +51,7 @@ func (r *userUuidRepositoryImpl) ExistsById(ctx context.Context, id ID) (bool, e
 }
 
 func (r *userUuidRepositoryImpl) FindAll(ctx context.Context) ([]*UserUuid, error) {
-	var m []*example.UserUuid
+	var m []*UserUuid
 	err := sqlx.SelectContext(ctx, r.db, &m, "SELECT `id`, `name`, `birthday`, `created_at`, `updated_at` FROM `user_uuid`")
 	if err != nil {
 		return nil, err
@@ -60,7 +60,7 @@ func (r *userUuidRepositoryImpl) FindAll(ctx context.Context) ([]*UserUuid, erro
 }
 
 func (r *userUuidRepositoryImpl) FindById(ctx context.Context, id ID) (*UserUuid, error) {
-	var m example.UserUuid
+	var m UserUuid
 	err := r.db.QueryRowxContext(ctx, "SELECT `id`, `name`, `birthday`, `created_at`, `updated_at` FROM `user_uuid` WHERE `id` = ?", id).StructScan(&m)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -81,7 +81,7 @@ func (r *userUuidRepositoryImpl) Update(ctx context.Context, model *UserUuid) er
 }
 
 func (r *userUuidRepositoryImpl) FindByName(ctx context.Context, name string) (*UserUuid, error) {
-	var m example.UserUuid
+	var m UserUuid
 	err := r.db.QueryRowxContext(ctx, "SELECT `id`, `name`, `birthday`, `created_at`, `updated_at` FROM `user_uuid` WHERE `name` = ?", name).StructScan(&m)
 	if err != nil {
 		if err == sql.ErrNoRows {

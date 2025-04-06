@@ -726,10 +726,15 @@ func IsPkAutoIncrement(model *ModelSpecs) bool {
 	return false
 }
 
-func GenResultModel(results *types.Tuple) string {
+func GenResultModel(results *types.Tuple, spec *RepositorySpecs) string {
 	if IsReturnSliceModel(results) {
-		if importPath := lookupPkgPath(results.At(0).Type()); importPath != "" {
-			return strings.ReplaceAll(results.At(0).Type().String(), importPath, strings.Split(importPath, "/")[len(strings.Split(importPath, "/"))-1])
+		importPath := lookupPkgPath(results.At(0).Type())
+		if importPath != "" {
+			if importPath == spec.Pkg.Path() {
+				return strings.ReplaceAll(results.At(0).Type().String(), fmt.Sprintf("%s.", importPath), "")
+			} else {
+				return strings.ReplaceAll(results.At(0).Type().String(), importPath, strings.Split(importPath, "/")[len(strings.Split(importPath, "/"))-1])
+			}
 		}
 		return results.At(0).Type().String()
 	}
@@ -739,8 +744,13 @@ func GenResultModel(results *types.Tuple) string {
 		return results.At(0).Type().String()
 	}
 
-	if importPath := lookupPkgPath(typ.Elem()); importPath != "" {
-		return strings.ReplaceAll(typ.Elem().String(), importPath, strings.Split(importPath, "/")[len(strings.Split(importPath, "/"))-1])
+	importPath := lookupPkgPath(typ.Elem())
+	if importPath != "" {
+		if importPath == spec.Pkg.Path() {
+			return strings.ReplaceAll(typ.Elem().String(), fmt.Sprintf("%s.", importPath), "")
+		} else {
+			return strings.ReplaceAll(typ.Elem().String(), importPath, strings.Split(importPath, "/")[len(strings.Split(importPath, "/"))-1])
+		}
 	}
 
 	return typ.Elem().String()

@@ -55,7 +55,7 @@ func (r *userRepositoryImpl) ExistsById(ctx context.Context, id int64) (bool, er
 }
 
 func (r *userRepositoryImpl) FindAll(ctx context.Context) ([]*User, error) {
-	var m []*example.User
+	var m []*User
 	err := sqlx.SelectContext(ctx, r.db, &m, "SELECT `id`, `name`, `birthday`, `created_at`, `updated_at` FROM `user`")
 	if err != nil {
 		return nil, err
@@ -64,7 +64,7 @@ func (r *userRepositoryImpl) FindAll(ctx context.Context) ([]*User, error) {
 }
 
 func (r *userRepositoryImpl) FindById(ctx context.Context, id int64) (*User, error) {
-	var m example.User
+	var m User
 	err := r.db.QueryRowxContext(ctx, "SELECT `id`, `name`, `birthday`, `created_at`, `updated_at` FROM `user` WHERE `id` = ?", id).StructScan(&m)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -85,7 +85,7 @@ func (r *userRepositoryImpl) Update(ctx context.Context, model *User) error {
 }
 
 func (r *userRepositoryImpl) FindByName(ctx context.Context, name string) (*User, error) {
-	var m example.User
+	var m User
 	err := r.db.QueryRowxContext(ctx, "SELECT `id`, `name`, `birthday`, `created_at`, `updated_at` FROM `user` WHERE `name` = ?", name).StructScan(&m)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -97,7 +97,7 @@ func (r *userRepositoryImpl) FindByName(ctx context.Context, name string) (*User
 }
 
 func (r *userRepositoryImpl) FindByNameAndBirthdayIn(ctx context.Context, name string, birthday []string) ([]*User, error) {
-	var m []*example.User
+	var m []*User
 	query, args, err := sqlx.In("SELECT `id`, `name`, `birthday`, `created_at`, `updated_at` FROM `user` WHERE (`name` = ?) AND (`birthday` IN (?))", name, birthday)
 	if err != nil {
 		return nil, err
@@ -111,7 +111,7 @@ func (r *userRepositoryImpl) FindByNameAndBirthdayIn(ctx context.Context, name s
 }
 
 func (r *userRepositoryImpl) FindByNameAndBirthday(ctx context.Context, name string, birthday string) ([]*User, error) {
-	var m []*example.User
+	var m []*User
 	err := sqlx.SelectContext(ctx, r.db, &m, "SELECT `id`, `name`, `birthday`, `created_at`, `updated_at` FROM `user` WHERE (`name` = ?) AND (`birthday` = ?)", name, birthday)
 	if err != nil {
 		return nil, err
@@ -120,7 +120,7 @@ func (r *userRepositoryImpl) FindByNameAndBirthday(ctx context.Context, name str
 }
 
 func (r *userRepositoryImpl) FindByBirthdayBetween(ctx context.Context, start string, end string) ([]*User, error) {
-	var m []*example.User
+	var m []*User
 	err := sqlx.SelectContext(ctx, r.db, &m, "SELECT `id`, `name`, `birthday`, `created_at`, `updated_at` FROM `user` WHERE `birthday` BETWEEN ? AND ?", start, end)
 	if err != nil {
 		return nil, err
@@ -129,7 +129,7 @@ func (r *userRepositoryImpl) FindByBirthdayBetween(ctx context.Context, start st
 }
 
 func (r *userRepositoryImpl) FindByBirthdayIsBefore(ctx context.Context, date string) ([]*User, error) {
-	var m []*example.User
+	var m []*User
 	err := sqlx.SelectContext(ctx, r.db, &m, "SELECT `id`, `name`, `birthday`, `created_at`, `updated_at` FROM `user` WHERE `birthday` < ?", date)
 	if err != nil {
 		return nil, err
@@ -138,7 +138,7 @@ func (r *userRepositoryImpl) FindByBirthdayIsBefore(ctx context.Context, date st
 }
 
 func (r *userRepositoryImpl) FindByBirthdayOrderByNameAsc(ctx context.Context, date string) ([]*User, error) {
-	var m []*example.User
+	var m []*User
 	err := sqlx.SelectContext(ctx, r.db, &m, "SELECT `id`, `name`, `birthday`, `created_at`, `updated_at` FROM `user` WHERE `birthday` = ? ORDER BY name ASC", date)
 	if err != nil {
 		return nil, err
@@ -147,7 +147,7 @@ func (r *userRepositoryImpl) FindByBirthdayOrderByNameAsc(ctx context.Context, d
 }
 
 func (r *userRepositoryImpl) FindByBirthdayOrderByNameAscBirthdayDesc(ctx context.Context, date string) ([]*User, error) {
-	var m []*example.User
+	var m []*User
 	err := sqlx.SelectContext(ctx, r.db, &m, "SELECT `id`, `name`, `birthday`, `created_at`, `updated_at` FROM `user` WHERE `birthday` = ? ORDER BY name ASC, birthday DESC", date)
 	if err != nil {
 		return nil, err
@@ -156,7 +156,7 @@ func (r *userRepositoryImpl) FindByBirthdayOrderByNameAscBirthdayDesc(ctx contex
 }
 
 func (r *userRepositoryImpl) FindTop20ByBirthday(ctx context.Context, date string) ([]*User, error) {
-	var m []*example.User
+	var m []*User
 	err := sqlx.SelectContext(ctx, r.db, &m, "SELECT `id`, `name`, `birthday`, `created_at`, `updated_at` FROM `user` WHERE `birthday` = ? LIMIT 20", date)
 	if err != nil {
 		return nil, err

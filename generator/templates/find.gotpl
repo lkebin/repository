@@ -1,7 +1,7 @@
 {{ define "FindBy" }}
 func (r {{ .Receiver }}) {{ .Name }}({{ Params .Params .Repository }}) {{ Results .Results .Repository }} {
 	{{- if IsReturnSliceModel .Results }}
-		var m {{ ResultModel .Results }}
+		var m {{ ResultModel .Results .Repository }}
 		{{- if IsQueryIn .PartTree }}
 			query, args, err := sqlx.In("{{- SelectClause .PartTree .Model -}} {{- FromClause .TableName -}} {{- WhereClausePredicate .PartTree .Params .Model -}} {{- OrderByClause .PartTree .Model -}} {{- LimitClause .PartTree -}}", {{ VarBinding .Params }})
 		if err != nil {
@@ -21,7 +21,7 @@ func (r {{ .Receiver }}) {{ .Name }}({{ Params .Params .Repository }}) {{ Result
 		return m, nil
 		{{- end }}
 	{{- else }}
-		var m {{ ResultModel .Results }}
+		var m {{ ResultModel .Results .Repository }}
 		{{- if IsQueryIn .PartTree }}
 		query, args, err := sqlx.In("{{- SelectClause .PartTree .Model -}} {{- FromClause .TableName -}} {{- WhereClausePredicate .PartTree .Params .Model -}} {{- OrderByClause .PartTree .Model -}} {{- LimitClause .PartTree -}}", {{ VarBinding .Params }})
 		if err != nil {
@@ -52,7 +52,7 @@ func (r {{ .Receiver }}) {{ .Name }}({{ Params .Params .Repository }}) {{ Result
 
 {{ define "FindAll" }}
 func (r {{ .Receiver }}) {{ .Name }}({{ Params .Params .Repository }}) {{ Results .Results .Repository }} {
-	var m {{ ResultModel .Results }}
+	var m {{ ResultModel .Results .Repository }}
 	err := sqlx.SelectContext({{ CtxParam .Params }}, r.db, &m, "{{- SelectClause .PartTree .Model -}} {{- FromClause .TableName -}}")
 	if err != nil {
 		return nil, err
