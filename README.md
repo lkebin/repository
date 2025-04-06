@@ -17,11 +17,11 @@ Declare a struct which works with [sqlx](https://github.com/jmoiron/sqlx), add a
 package example
 
 type User struct {
-	Id        int64  `db:"id,pk,autoincrement"`
-	Name      string `db:"name"`
-	Birthday  string `db:"birthday"`
-	CreatedAt string `db:"created_at"`
-	UpdatedAt string `db:"updated_at"`
+    Id        int64  `db:"id,pk,autoincrement"`
+    Name      string `db:"name"`
+    Birthday  string `db:"birthday"`
+    CreatedAt string `db:"created_at"`
+    UpdatedAt string `db:"updated_at"`
 }
 ```
 
@@ -32,12 +32,12 @@ Declare an interface type within another file, named `user_repository.go`.
 package example
 
 import (
-	"context"
+    "context"
     "github.com/lkebin/repository"
 )
 
 type UserRepository interface {
-	repository.CrudRepository[User, int64]
+    repository.CrudRepository[User, int64]
 
     FindByBirthday(ctx context.Context, birthday string) ([]*User, error)
 }
