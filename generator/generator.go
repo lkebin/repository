@@ -419,6 +419,7 @@ func GenUpdateFieldBinding(params *types.Tuple, model *ModelSpecs) string {
 
 	var pkFieldName = ""
 	var s = &strings.Builder{}
+	var numOfSet = 0
 	for i := 0; i < model.Struct.NumFields(); i++ {
 		tag := reflect.StructTag(model.Struct.Tag(i))
 		columnName, opts := ParseTag(tag.Get("db"))
@@ -426,14 +427,23 @@ func GenUpdateFieldBinding(params *types.Tuple, model *ModelSpecs) string {
 			pkFieldName = model.Struct.Field(i).Name()
 		}
 
+		flag := false
 		for _, v := range columns {
 			if v.Name == columnName {
-				s.WriteString(paramName)
-				s.WriteString(".")
-				s.WriteString(model.Struct.Field(i).Name())
-				if i < len(columns) {
-					s.WriteString(", ")
-				}
+				flag = true
+				break
+			}
+		}
+
+		if flag {
+			s.WriteString(paramName)
+			s.WriteString(".")
+			s.WriteString(model.Struct.Field(i).Name())
+
+			numOfSet++
+
+			if numOfSet < len(columns) {
+				s.WriteString(", ")
 			}
 		}
 	}
