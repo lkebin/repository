@@ -10,7 +10,7 @@ var (
 	countPattern   = `Count`
 	existsPattern  = `Exists`
 	deletePattern  = `Delete|Remove`
-	prefixTemplate = regexp.MustCompile(`^(` + queryPattern + `|` + countPattern + `|` + existsPattern + `|` + deletePattern + `)((\p{Lu}.*?))??By`)
+	prefixTemplate = regexp.MustCompile(`^(` + queryPattern + `|` + countPattern + `|` + existsPattern + `|` + deletePattern + `)(\p{Lu}.*?)??By`)
 	andPattern     = regexp.MustCompile(`And(\p{Lu})`)
 )
 
@@ -22,7 +22,7 @@ type PartTree struct {
 func NewPartTree(source string) (*PartTree, error) {
 	pt := &PartTree{}
 
-	matches := prefixTemplate.FindAllString(source, -1)
+	matches := prefixTemplate.FindAllStringSubmatch(source, -1)
 
 	if matches == nil {
 		pt.Subject = NewSubject("")
@@ -32,8 +32,8 @@ func NewPartTree(source string) (*PartTree, error) {
 		}
 		pt.Predicate = predicate
 	} else {
-		pt.Subject = NewSubject(matches[0])
-		predicate, err := NewPredicate(source[len(matches[0]):])
+		pt.Subject = NewSubject(matches[0][0])
+		predicate, err := NewPredicate(source[len(matches[0][0]):])
 		if err != nil {
 			return nil, err
 		}
