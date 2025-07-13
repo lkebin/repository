@@ -344,6 +344,10 @@ func IsQueryIn(pt *parser.PartTree) bool {
 			if reflect.DeepEqual(vv.Type, parser.In) {
 				return true
 			}
+
+			if reflect.DeepEqual(vv.Type, parser.NotIn) {
+				return true
+			}
 		}
 	}
 	return false

@@ -12,10 +12,22 @@ func (r {{ .Receiver }}) {{ .Name }}({{ Params .Params .Repository }}) {{ Result
 {{ define "CountBy" }}
 func (r {{ .Receiver }}) {{ .Name }}({{ Params .Params .Repository }}) {{ Results .Results .Repository }} {
 	var cnt int64
+	{{- if IsQueryIn .PartTree }}
+	query, args, err := sqlx.In("{{- CountClause .PartTree .Model -}} {{- FromClause .TableName -}} {{- WhereClausePredicate .PartTree .Params .Model -}}", {{ VarBinding .Params }})
+	if err != nil {
+		return cnt, err
+	}
+	query = r.db.Rebind(query)
+	err = r.db.QueryRowxContext({{ CtxParam .Params }}, query, args...).Scan(&cnt)
+	if err != nil {
+		return cnt, err
+	}
+	{{- else }}
 	err := r.db.QueryRowxContext({{ CtxParam .Params }}, "{{- CountClause .PartTree .Model -}} {{- FromClause .TableName -}} {{- WhereClausePredicate .PartTree .Params .Model -}}", {{ VarBinding .Params }}).Scan(&cnt)
 	if err != nil {
-		return 0, err
+		return cnt, err
 	}
+	{{- end }}
 	return cnt, nil
 }
 {{ end }}

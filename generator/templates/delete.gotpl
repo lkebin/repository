@@ -1,7 +1,19 @@
 func (r {{ .Receiver }}) {{ .Name }}({{ Params .Params .Repository }}) {{ Results .Results .Repository }} {
+	{{- if IsQueryIn .PartTree }}
+	query, args, err := sqlx.In("{{- DeleteClause .TableName -}} {{- WhereClausePredicate .PartTree .Params .Model -}}", {{ VarBinding .Params }})
+	if err != nil {
+		return err
+	}
+	query = r.db.Rebind(query)
+	_, err = r.db.ExecContext({{ CtxParam .Params }}, query, args...)
+	if err != nil {
+		return err
+	}
+	{{- else }}
 	_, err := r.db.ExecContext({{ CtxParam .Params }}, "{{- DeleteClause .TableName -}} {{- WhereClausePredicate .PartTree .Params .Model -}}", {{ VarBinding .Params }})
 	if err != nil {
 		return err
 	}
+	{{- end }}
 	return nil
 }
