@@ -891,11 +891,15 @@ func (t TagOptions) Contains(optionName string) bool {
 }
 
 // ToSnakeCase convert string from camel case to snake case
-func ToSnakeCase(camelCase string) string {
-	re := regexp.MustCompile(`(.)([A-Z][a-z]+)`)
-	s1 := re.ReplaceAllString(camelCase, "${1}_${2}")
-	re1 := regexp.MustCompile(`([a-z0-9])([A-Z])`)
-	s2 := re1.ReplaceAllString(s1, "${1}_${2}")
+func ToSnakeCase(s string) string {
+	re := regexp.MustCompile("([a-z])([A-Z])")
+	s = re.ReplaceAllString(s, "${1}_${2}")
 
-	return strings.ToLower(s2)
+	re2 := regexp.MustCompile("([a-zA-Z])([0-9])")
+	s = re2.ReplaceAllString(s, "${1}_${2}")
+
+	re3 := regexp.MustCompile("([0-9])([A-Z])")
+	s = re3.ReplaceAllString(s, "${1}_${2}")
+
+	return strings.ToLower(s)
 }
