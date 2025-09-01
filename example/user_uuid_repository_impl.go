@@ -4,6 +4,7 @@ package example
 import (
 	"context"
 	"database/sql"
+
 	"github.com/jmoiron/sqlx"
 )
 

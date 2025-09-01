@@ -4,7 +4,11 @@ package example
 import (
 	"context"
 	"database/sql"
+	"fmt"
+
 	"github.com/jmoiron/sqlx"
+	"github.com/lkebin/repository/filter"
+	"github.com/lkebin/repository/pager"
 )
 
 type userRepositoryImpl struct {
@@ -82,6 +86,47 @@ func (r *userRepositoryImpl) Update(ctx context.Context, model *User) error {
 	}
 
 	return nil
+}
+
+func (r *userRepositoryImpl) Query(ctx context.Context, size int64, p pager.OffsetPager, f filter.Filter) ([]*User, int64, error) {
+	var (
+		m        []*User
+		total    int64
+		countSQL = "SELECT COUNT(`id`) FROM `user`WHERE %s"
+		dataSQL  = "SELECT `id`, `name`, `birthday`, `created_at`, `updated_at` FROM `user`WHERE %s ORDER BY %s LIMIT ? OFFSET ?"
+	)
+
+	filterWhere, filterValues, err := f.Build()
+	if err != nil {
+		return nil, total, fmt.Errorf("build filter error: %w", err)
+	}
+
+	if err := r.db.QueryRowxContext(ctx, fmt.Sprintf(countSQL, filterWhere), filterValues...).Scan(&total); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, 0, nil
+		}
+		return nil, total, fmt.Errorf("count query error: %w", err)
+	}
+
+	if total == 0 {
+		return nil, total, nil
+	}
+
+	orderBy, pageNum, err := p.Build()
+	if err != nil {
+		return nil, total, fmt.Errorf("build pager error: %w", err)
+	}
+
+	bind := []interface{}{}
+	bind = append(bind, filterValues...)
+	bind = append(bind, size)
+	bind = append(bind, (pageNum-1)*size)
+
+	if err := sqlx.SelectContext(ctx, r.db, &m, fmt.Sprintf(dataSQL, filterWhere, orderBy), bind...); err != nil {
+		return nil, total, fmt.Errorf("query list error: %w", err)
+	}
+
+	return m, total, nil
 }
 
 func (r *userRepositoryImpl) FindByName(ctx context.Context, name string) (*User, error) {
