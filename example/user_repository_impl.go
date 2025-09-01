@@ -92,8 +92,8 @@ func (r *userRepositoryImpl) Query(ctx context.Context, size int64, p pager.Offs
 	var (
 		m        []*User
 		total    int64
-		countSQL = "SELECT COUNT(`id`) FROM `user`WHERE %s"
-		dataSQL  = "SELECT `id`, `name`, `birthday`, `created_at`, `updated_at` FROM `user`WHERE %s ORDER BY %s LIMIT ? OFFSET ?"
+		countSQL = "SELECT COUNT(`id`) FROM `user` WHERE %s"
+		dataSQL  = "SELECT `id`, `name`, `birthday`, `created_at`, `updated_at` FROM `user` WHERE %s ORDER BY %s LIMIT ? OFFSET ?"
 	)
 
 	filterWhere, filterValues, err := f.Build()
@@ -105,7 +105,7 @@ func (r *userRepositoryImpl) Query(ctx context.Context, size int64, p pager.Offs
 		if err == sql.ErrNoRows {
 			return nil, 0, nil
 		}
-		return nil, total, fmt.Errorf("count query error: %w", err)
+		return nil, total, fmt.Errorf("count error: %w", err)
 	}
 
 	if total == 0 {
@@ -123,7 +123,7 @@ func (r *userRepositoryImpl) Query(ctx context.Context, size int64, p pager.Offs
 	bind = append(bind, (pageNum-1)*size)
 
 	if err := sqlx.SelectContext(ctx, r.db, &m, fmt.Sprintf(dataSQL, filterWhere, orderBy), bind...); err != nil {
-		return nil, total, fmt.Errorf("query list error: %w", err)
+		return nil, total, fmt.Errorf("query error: %w", err)
 	}
 
 	return m, total, nil

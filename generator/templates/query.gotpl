@@ -2,8 +2,8 @@ func (r {{ .Receiver }}) Query({{ Params .Params .Repository }}) {{ Results .Res
 	var (
         m     {{ ResultModel .Results .Repository }}
 		total int64
-		countSQL = "{{- CountClause .Model -}} {{- FromClause .TableName -}} WHERE %s"
-		dataSQL = "{{- SelectClause .Model false -}} {{- FromClause .TableName -}} WHERE %s ORDER BY %s LIMIT ? OFFSET ?"
+		countSQL = "{{- CountClause .Model -}} {{- FromClause .TableName }} WHERE %s"
+		dataSQL = "{{- SelectClause .Model false -}} {{- FromClause .TableName }} WHERE %s ORDER BY %s LIMIT ? OFFSET ?"
 	)
 
 	filterWhere, filterValues, err := f.Build()
@@ -15,7 +15,7 @@ func (r {{ .Receiver }}) Query({{ Params .Params .Repository }}) {{ Results .Res
 		if err == sql.ErrNoRows {
 			return nil, 0, nil
 		}
-		return nil, total, fmt.Errorf("count query error: %w", err)
+		return nil, total, fmt.Errorf("count error: %w", err)
 	}
 
 	if total == 0 {
@@ -33,7 +33,7 @@ func (r {{ .Receiver }}) Query({{ Params .Params .Repository }}) {{ Results .Res
 	bind = append(bind, (pageNum-1)*size)
 
 	if err := sqlx.SelectContext(ctx, r.db, &m, fmt.Sprintf(dataSQL, filterWhere, orderBy), bind...); err != nil {
-		return nil, total, fmt.Errorf("query list error: %w", err)
+		return nil, total, fmt.Errorf("query error: %w", err)
 	}
 
 	return m, total, nil
