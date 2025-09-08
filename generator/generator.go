@@ -3,7 +3,6 @@ package generator
 import (
 	_ "embed"
 	"fmt"
-	"go/format"
 	"go/types"
 	"log"
 	"os"
@@ -13,6 +12,7 @@ import (
 	"text/template"
 
 	"github.com/lkebin/repository/parser"
+	impt "golang.org/x/tools/imports"
 )
 
 //go:embed templates/find.gotpl
@@ -33,6 +33,9 @@ var updateTpl string
 //go:embed templates/delete.gotpl
 var deleteTpl string
 
+//go:embed templates/query.gotpl
+var queryTpl string
+
 func GenerateRepositoryImplements(spec *RepositorySpecs) ([]byte, error) {
 	implName := fmt.Sprintf("%sImpl", strings.ToLower(spec.Name[:1])+spec.Name[1:])
 	var tpl = &strings.Builder{}
@@ -44,14 +47,15 @@ func GenerateRepositoryImplements(spec *RepositorySpecs) ([]byte, error) {
 	imports := make(map[string]any)
 	imports["github.com/jmoiron/sqlx"] = nil
 	imports["database/sql"] = nil
+	imports["fmt"] = nil
 	for _, v := range spec.Methods {
-		for i := 0; i < v.Signature().Params().Len(); i++ {
+		for i := range v.Signature().Params().Len() {
 			importPath := lookupPkgPath(v.Signature().Params().At(i).Type())
 			if importPath != "" && importPath != spec.Pkg.Path() {
 				imports[importPath] = nil
 			}
 		}
-		for i := 0; i < v.Signature().Results().Len(); i++ {
+		for i := range v.Signature().Results().Len() {
 			importPath := lookupPkgPath(v.Signature().Results().At(i).Type())
 			if importPath != "" && importPath != spec.Pkg.Path() {
 				imports[importPath] = nil
@@ -95,12 +99,12 @@ func GenerateRepositoryImplements(spec *RepositorySpecs) ([]byte, error) {
 		tpl.WriteString("\n")
 	}
 
-	return format.Source([]byte(tpl.String()))
+	return impt.Process("", []byte(tpl.String()), nil)
 }
 
 func parseTuple(params *types.Tuple, spec *RepositorySpecs) string {
 	var p = &strings.Builder{}
-	for i := 0; i < params.Len(); i++ {
+	for i := range params.Len() {
 		// Name
 		if params.At(i).Name() != "" {
 			p.WriteString(params.At(i).Name())
@@ -228,6 +232,11 @@ func genFuncImpl(implName string, model *ModelSpecs, m *types.Func, spec *Reposi
 			return "", fmt.Errorf("delete template execute error: %w", err)
 		}
 
+	case m.Name() == "Query":
+		if err := template.Must(template.New("").Funcs(funcMap()).Parse(queryTpl)).Execute(tpl, fn); err != nil {
+			return "", fmt.Errorf("delete template execute error: %w", err)
+		}
+
 	case pt.Subject != &parser.Subject{}: // A valid subject
 		if pt.Subject.IsCount {
 			if err := template.Must(template.New("").Funcs(funcMap()).Parse(countTpl)).ExecuteTemplate(tpl, "CountBy", fn); err != nil {
@@ -313,7 +322,7 @@ func GenLimitClause(pt *parser.PartTree) string {
 }
 
 func lookupColumnByProperty(property string, m *ModelSpecs) *Column {
-	for i := 0; i < m.Struct.NumFields(); i++ {
+	for i := range m.Struct.NumFields() {
 		if m.Struct.Field(i).Name() == property {
 			tag := reflect.StructTag(m.Struct.Tag(i))
 			columnName, _ := ParseTag(tag.Get("db"))
@@ -358,7 +367,7 @@ func GenParams(params *types.Tuple, spec *RepositorySpecs) string {
 }
 
 func GenCtxParam(params *types.Tuple) string {
-	for i := 0; i < params.Len(); i++ {
+	for i := range params.Len() {
 		if (params.At(i).Type().String()) == "context.Context" {
 			return params.At(i).Name()
 		}
@@ -377,7 +386,7 @@ func GenInsertFieldBinding(params *types.Tuple, model *ModelSpecs) string {
 	columns := GenInsertColumns(model)
 
 	var paramName = ""
-	for i := 0; i < params.Len(); i++ {
+	for i := range params.Len() {
 		var p = params.At(i).Type()
 		if _, ok := params.At(i).Type().(*types.Pointer); ok {
 			p = params.At(i).Type().(*types.Pointer).Elem()
@@ -389,7 +398,7 @@ func GenInsertFieldBinding(params *types.Tuple, model *ModelSpecs) string {
 	}
 
 	var s = &strings.Builder{}
-	for i := 0; i < model.Struct.NumFields(); i++ {
+	for i := range model.Struct.NumFields() {
 		tag := reflect.StructTag(model.Struct.Tag(i))
 		cn, _ := ParseTag(tag.Get("db"))
 		for _, v := range columns {
@@ -410,7 +419,7 @@ func GenUpdateFieldBinding(params *types.Tuple, model *ModelSpecs) string {
 	columns := GenUpdateColumns(model)
 
 	var paramName = ""
-	for i := 0; i < params.Len(); i++ {
+	for i := range params.Len() {
 		var p = params.At(i).Type()
 		if _, ok := params.At(i).Type().(*types.Pointer); ok {
 			p = params.At(i).Type().(*types.Pointer).Elem()
@@ -424,7 +433,7 @@ func GenUpdateFieldBinding(params *types.Tuple, model *ModelSpecs) string {
 	var pkFieldName = ""
 	var s = &strings.Builder{}
 	var numOfSet = 0
-	for i := 0; i < model.Struct.NumFields(); i++ {
+	for i := range model.Struct.NumFields() {
 		tag := reflect.StructTag(model.Struct.Tag(i))
 		columnName, opts := ParseTag(tag.Get("db"))
 		if opts.Contains("pk") {
@@ -463,7 +472,7 @@ func GenUpdateFieldBinding(params *types.Tuple, model *ModelSpecs) string {
 
 func GenInsertColumns(model *ModelSpecs) []*Column {
 	var columns []*Column
-	for i := 0; i < model.Struct.NumFields(); i++ {
+	for i := range model.Struct.NumFields() {
 		tag := reflect.StructTag(model.Struct.Tag(i))
 		columnName, opts := ParseTag(tag.Get("db"))
 		if opts.Contains("autoincrement") {
@@ -482,7 +491,7 @@ func GenInsertColumns(model *ModelSpecs) []*Column {
 
 func GenUpdateColumns(model *ModelSpecs) []*Column {
 	var columns []*Column
-	for i := 0; i < model.Struct.NumFields(); i++ {
+	for i := range model.Struct.NumFields() {
 		tag := reflect.StructTag(model.Struct.Tag(i))
 		columnName, opts := ParseTag(tag.Get("db"))
 		if opts.Contains("pk") {
@@ -553,12 +562,12 @@ func GenUpdateClause(tableName string, model *ModelSpecs) string {
 	return s.String()
 }
 
-func GenSelectClause(pt *parser.PartTree, m *ModelSpecs) string {
+func GenSelectClause(m *ModelSpecs, isDistinct bool) string {
 	columns := lookupColumns(m)
 	var s = &strings.Builder{}
 	s.WriteString("SELECT ")
 
-	if pt.Subject.IsDistinct {
+	if isDistinct {
 		s.WriteString("DISTINCT ")
 	}
 
@@ -574,7 +583,7 @@ func GenSelectClause(pt *parser.PartTree, m *ModelSpecs) string {
 	return s.String()
 }
 
-func GenCountClause(pt *parser.PartTree, m *ModelSpecs) string {
+func GenCountClause(m *ModelSpecs) string {
 	pkColumn := lookupPkColumn(m)
 	var s = &strings.Builder{}
 	s.WriteString("SELECT ")
@@ -730,7 +739,7 @@ func IsReturnSliceModel(results *types.Tuple) bool {
 }
 
 func IsPkAutoIncrement(model *ModelSpecs) bool {
-	for i := 0; i < model.Struct.NumFields(); i++ {
+	for i := range model.Struct.NumFields() {
 		tag := reflect.StructTag(model.Struct.Tag(i))
 		_, opts := ParseTag(tag.Get("db"))
 		if opts.Contains("pk") && opts.Contains("autoincrement") {
@@ -772,7 +781,7 @@ func GenResultModel(results *types.Tuple, spec *RepositorySpecs) string {
 
 func lookupColumns(model *ModelSpecs) []*Column {
 	var columns []*Column
-	for i := 0; i < model.Struct.NumFields(); i++ {
+	for i := range model.Struct.NumFields() {
 		tag := reflect.StructTag(model.Struct.Tag(i))
 		columnName, _ := ParseTag(tag.Get("db"))
 		if columnName != "" {
@@ -786,7 +795,7 @@ func lookupColumns(model *ModelSpecs) []*Column {
 }
 
 func lookupPkColumn(model *ModelSpecs) *Column {
-	for i := 0; i < model.Struct.NumFields(); i++ {
+	for i := range model.Struct.NumFields() {
 		tag := reflect.StructTag(model.Struct.Tag(i))
 		columnName, opts := ParseTag(tag.Get("db"))
 		if columnName != "" && opts.Contains("pk") {
