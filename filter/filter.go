@@ -431,7 +431,7 @@ func (f *filterImpl) whereBuild(column string, operator string, query any) (stri
 		v = append(v, query)
 	case "gte":
 		w = fmt.Sprintf(`(%s >= ?)`, column)
-		v = append(v, column)
+		v = append(v, query)
 	case "lt":
 		w = fmt.Sprintf(`(%s < ?)`, column)
 		v = append(v, query)
