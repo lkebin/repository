@@ -1,6 +1,6 @@
 func (r {{ .Receiver }}) {{ .Name }}({{ Params .Params .Repository }}) {{ Results .Results .Repository }} {
 	{{- if IsQueryIn .PartTree }}
-	query, args, err := sqlx.In("{{- DeleteClause .TableName -}} {{- WhereClausePredicate .PartTree .Params .Model -}}", {{ VarBinding .Params }})
+	query, args, err := sqlx.In("{{- DeleteClause .TableName -}} {{- WhereClausePredicate .PartTree .Params .Model -}}"{{ VarBinding .Params }})
 	if err != nil {
 		return err
 	}
@@ -10,7 +10,7 @@ func (r {{ .Receiver }}) {{ .Name }}({{ Params .Params .Repository }}) {{ Result
 		return err
 	}
 	{{- else }}
-	_, err := r.db.ExecContext({{ CtxParam .Params }}, "{{- DeleteClause .TableName -}} {{- WhereClausePredicate .PartTree .Params .Model -}}", {{ VarBinding .Params }})
+	_, err := r.db.ExecContext({{ CtxParam .Params }}, "{{- DeleteClause .TableName -}} {{- WhereClausePredicate .PartTree .Params .Model -}}"{{ VarBinding .Params }})
 	if err != nil {
 		return err
 	}

@@ -208,3 +208,21 @@ func (r *userRepositoryImpl) FindTop20ByBirthday(ctx context.Context, date strin
 	}
 	return m, nil
 }
+
+func (r *userRepositoryImpl) FindByNameIsNull(ctx context.Context) ([]*User, error) {
+	var m []*User
+	err := sqlx.SelectContext(ctx, r.db, &m, "SELECT `id`, `name`, `birthday`, `created_at`, `updated_at` FROM `user` WHERE `name` IS NULL")
+	if err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (r *userRepositoryImpl) FindByNameIsNullAndBirthday(ctx context.Context, birthday string) ([]*User, error) {
+	var m []*User
+	err := sqlx.SelectContext(ctx, r.db, &m, "SELECT `id`, `name`, `birthday`, `created_at`, `updated_at` FROM `user` WHERE (`name` IS NULL) AND (`birthday` = ?)", birthday)
+	if err != nil {
+		return nil, err
+	}
+	return m, nil
+}

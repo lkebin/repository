@@ -723,8 +723,11 @@ func GenWhereClausePredicate(pt *parser.PartTree, params *types.Tuple, m *ModelS
 }
 
 func GenVarBinding(params *types.Tuple) string {
+	if params.Len() <= 1 {
+		return ""
+	}
 	var s = &strings.Builder{}
-	// always skip the first params, it's context.Context
+	s.WriteString(", ")
 	for i := 1; i < params.Len(); i++ {
 		s.WriteString(params.At(i).Name())
 		if i < params.Len()-1 {

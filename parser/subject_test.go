@@ -4,68 +4,100 @@ import (
 	"testing"
 )
 
-func TestIsDistinct(t *testing.T) {
-	s := NewSubject("FindDistinctByLastName")
-	if s.IsDistinct == false {
-		t.Errorf("expect true, got false")
+func TestNewSubject(t *testing.T) {
+	tests := []struct {
+		name       string
+		subject    string
+		isDistinct bool
+		isCount    bool
+		isExists   bool
+		isDelete   bool
+		isLimiting bool
+		maxResults int
+	}{
+		{
+			name:       "Find subject",
+			subject:    "FindBy",
+			isDistinct: false,
+		},
+		{
+			name:       "Distinct",
+			subject:    "FindDistinctBy",
+			isDistinct: true,
+		},
+		{
+			name:    "Count",
+			subject: "CountBy",
+			isCount: true,
+		},
+		{
+			name:     "Exists",
+			subject:  "ExistsBy",
+			isExists: true,
+		},
+		{
+			name:     "Delete",
+			subject:  "DeleteBy",
+			isDelete: true,
+		},
+		{
+			name:     "Remove",
+			subject:  "RemoveBy",
+			isDelete: true,
+		},
+		{
+			name:       "First (default 1)",
+			subject:    "FindFirstBy",
+			isLimiting: true,
+			maxResults: 1,
+		},
+		{
+			name:       "First10",
+			subject:    "FindFirst10By",
+			isLimiting: true,
+			maxResults: 10,
+		},
+		{
+			name:       "Top (default 1)",
+			subject:    "FindTopBy",
+			isLimiting: true,
+			maxResults: 1,
+		},
+		{
+			name:       "Top10",
+			subject:    "FindTop10By",
+			isLimiting: true,
+			maxResults: 10,
+		},
+		{
+			name:       "empty subject",
+			subject:    "",
+			isDistinct: false,
+		},
 	}
-}
 
-func TestIsCount(t *testing.T) {
-	s := NewSubject("CountByLastName")
-	if s.IsCount == false {
-		t.Errorf("expect true, got false")
-	}
-}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := NewSubject(tt.subject)
 
-func TestIsExists(t *testing.T) {
-	s := NewSubject("ExistsByLastName")
-	if s.IsExists == false {
-		t.Errorf("expect true, got false")
-	}
-}
-
-func TestIsDelete(t *testing.T) {
-	s := NewSubject("DeleteByLastName")
-	if s.IsDelete == false {
-		t.Errorf("expect true, got false")
-	}
-}
-
-func TestIsLimiting(t *testing.T) {
-	s := NewSubject("FindFirstByLastName")
-	if s.IsLimiting == false {
-		t.Errorf("expect true, got false")
-	}
-
-	if s.MaxResults != 1 {
-		t.Errorf("expect 1, got %d", s.MaxResults)
-	}
-
-	s1 := NewSubject("FindFirst10ByLastName")
-	if s1.IsLimiting == false {
-		t.Errorf("expect true, got false")
-	}
-
-	if s1.MaxResults != 10 {
-		t.Errorf("expect 10, got %d", s.MaxResults)
-	}
-
-	s2 := NewSubject("FindTopByLastName")
-	if s2.IsLimiting == false {
-		t.Errorf("expect true, got false")
-	}
-
-	if s2.MaxResults != 1 {
-		t.Errorf("expect 1, got %d", s.MaxResults)
-	}
-
-	s3 := NewSubject("FindTop10ByLastName")
-	if s3.IsLimiting == false {
-		t.Errorf("expect true, got false")
-	}
-
-	if s3.MaxResults != 10 {
-		t.Errorf("expect 10, got %d", s.MaxResults)
+			if s.IsDistinct != tt.isDistinct {
+				t.Errorf("IsDistinct: expected %v, got %v", tt.isDistinct, s.IsDistinct)
+			}
+			if s.IsCount != tt.isCount {
+				t.Errorf("IsCount: expected %v, got %v", tt.isCount, s.IsCount)
+			}
+			if s.IsExists != tt.isExists {
+				t.Errorf("IsExists: expected %v, got %v", tt.isExists, s.IsExists)
+			}
+			if s.IsDelete != tt.isDelete {
+				t.Errorf("IsDelete: expected %v, got %v", tt.isDelete, s.IsDelete)
+			}
+			if s.IsLimiting != tt.isLimiting {
+				t.Errorf("IsLimiting: expected %v, got %v", tt.isLimiting, s.IsLimiting)
+			}
+			if tt.isLimiting && s.MaxResults != tt.maxResults {
+				t.Errorf("MaxResults: expected %d, got %d", tt.maxResults, s.MaxResults)
+			}
+		})
 	}
 }

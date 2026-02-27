@@ -19,6 +19,8 @@ type UserRepository interface {
 	FindByBirthdayOrderByNameAsc(ctx context.Context, date string) ([]*User, error)
 	FindByBirthdayOrderByNameAscBirthdayDesc(ctx context.Context, date string) ([]*User, error)
 	FindTop20ByBirthday(ctx context.Context, date string) ([]*User, error)
+	FindByNameIsNull(ctx context.Context) ([]*User, error)
+	FindByNameIsNullAndBirthday(ctx context.Context, birthday string) ([]*User, error)
 }
 
 type UserUuidRepository interface {
