@@ -1,3 +1,4 @@
+//go:generate go run github.com/lkebin/repository/cmd/repository -type=UserRepository
 package testdata
 
 import (
@@ -20,4 +21,5 @@ type UserRepository interface {
 	CountByName(ctx context.Context, name string) (int64, error)
 	ExistsByName(ctx context.Context, name string) (bool, error)
 	DeleteByName(ctx context.Context, name string) error
+	FindByNameAndBirthdayIsNull(ctx context.Context, name string) ([]*User, error)
 }

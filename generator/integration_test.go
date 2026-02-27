@@ -244,6 +244,7 @@ func TestGenWhereClausePredicate(t *testing.T) {
 		{"FindByNameIsNullAndBirthday", " WHERE (`name` IS NULL) AND (`birthday` = ?)"},
 		{"FindByNameIn", " WHERE `name` IN (?)"},
 		{"FindByBirthdayBetween", " WHERE `birthday` BETWEEN ? AND ?"},
+		{"FindByNameAndBirthdayIsNull", " WHERE (`name` = ?) AND (`birthday` IS NULL)"},
 	}
 
 	for _, tt := range tests {
@@ -304,10 +305,12 @@ func TestGenerateRepositoryImplements(t *testing.T) {
 		{"CountByName method", "func (r *userRepositoryImpl) CountByName("},
 		{"ExistsByName method", "func (r *userRepositoryImpl) ExistsByName("},
 		{"DeleteByName method", "func (r *userRepositoryImpl) DeleteByName("},
+		{"FindByNameAndBirthdayIsNull method", "func (r *userRepositoryImpl) FindByNameAndBirthdayIsNull("},
 
 		// SQL correctness for IsNull (the original bug)
 		{"IsNull SQL has no trailing comma", "WHERE `name` IS NULL\")"}, // closes with ") not ", )"
 		{"IsNull+And SQL", "WHERE (`name` IS NULL) AND (`birthday` = ?)"},
+		{"And+IsNull SQL", "WHERE (`name` = ?) AND (`birthday` IS NULL)"},
 
 		// SQL for other clauses
 		{"BETWEEN SQL", "BETWEEN ? AND ?"},
