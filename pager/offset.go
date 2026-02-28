@@ -2,7 +2,6 @@ package pager
 
 import (
 	"fmt"
-	"math"
 	"strings"
 )
 
@@ -43,13 +42,13 @@ func (p *offsetPagerImpl) SetPage(page int64) {
 
 func (p *offsetPagerImpl) SetOrder(orderByPairs ...string) {
 	pairs := orderByPairs
-	if math.Mod(float64(len(orderByPairs)), 2) != 0 {
+	if len(orderByPairs)%2 != 0 {
 		pairs = append(pairs, Asc)
 	}
 
 	var curColumn string
 	for k, v := range pairs {
-		if math.Mod(float64(k+1), 2) == 0 {
+		if (k+1)%2 == 0 {
 			p.orderByPairs = append(p.orderByPairs, orderByPair{column: curColumn, direction: v})
 		} else {
 			curColumn = v

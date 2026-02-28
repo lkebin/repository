@@ -1,3 +1,4 @@
+{{ define "Create" }}
 func (r {{ .Receiver }}) {{ .Name }}({{ Params .Params .Repository }}) {{ Results .Results .Repository }} {
     {{- if IsPkAutoIncrement .Model }}
 	result, err := r.db.ExecContext(ctx, "{{ InsertClause .TableName .Model }}", {{ InsertFieldBinding .Params .Model }})
@@ -19,3 +20,4 @@ func (r {{ .Receiver }}) {{ .Name }}({{ Params .Params .Repository }}) {{ Result
 	return r.FindById({{ CtxParam .Params }}, {{ ParamName .Params 1 }}.{{ PkFieldName .Model }})
     {{- end }}
 }
+{{ end }}

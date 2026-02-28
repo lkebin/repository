@@ -53,6 +53,8 @@ func TestParseOperator(t *testing.T) {
 		{"Containing", parser.Containing, " LIKE ?", false},
 		{"NotIn", parser.NotIn, " NOT IN (?)", false},
 		{"In", parser.In, " IN (?)", false},
+		{"True", parser.True, " = TRUE", false},
+		{"False", parser.False, " = FALSE", false},
 		{"NegatingSimpleProperty", parser.NegatingSimpleProperty, " != ?", false},
 		{"SimpleProperty", parser.SimpleProperty, " = ?", false},
 		{"unsupported operator", parser.PartType{NumberOfArguments: 99, Keywords: []string{"Unknown"}}, "", true},
@@ -151,5 +153,17 @@ func TestTagOptionsGet(t *testing.T) {
 				t.Errorf("TagOptions(%q).Get(%q) = %q, want %q", tt.opts, tt.optionName, got, tt.want)
 			}
 		})
+	}
+}
+
+func TestFuncMapAdd(t *testing.T) {
+	fm := funcMap()
+	addFn, ok := fm["Add"]
+	if !ok {
+		t.Fatal("expected Add in funcMap")
+	}
+	result := addFn.(func(int, int) int)(3, 4)
+	if result != 7 {
+		t.Errorf("Add(3, 4) = %d, want 7", result)
 	}
 }

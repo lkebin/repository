@@ -1,3 +1,4 @@
+{{ define "DeleteBy" }}
 func (r {{ .Receiver }}) {{ .Name }}({{ Params .Params .Repository }}) {{ Results .Results .Repository }} {
 	{{- if IsQueryIn .PartTree }}
 	query, args, err := sqlx.In("{{- DeleteClause .TableName -}} {{- WhereClausePredicate .PartTree .Params .Model -}}"{{ VarBinding .Params }})
@@ -17,3 +18,4 @@ func (r {{ .Receiver }}) {{ .Name }}({{ Params .Params .Repository }}) {{ Result
 	{{- end }}
 	return nil
 }
+{{ end }}

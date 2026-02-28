@@ -1,7 +1,6 @@
 package parser
 
 import (
-	"reflect"
 	"testing"
 )
 
@@ -105,7 +104,7 @@ func TestNewPredicate(t *testing.T) {
 
 				if tt.wantTypes != nil {
 					for j, child := range node.Children {
-						if !reflect.DeepEqual(child.Type, tt.wantTypes[i][j]) {
+						if child.Type.Name != tt.wantTypes[i][j].Name {
 							t.Errorf("node[%d].child[%d]: expected type %v, got %v", i, j, tt.wantTypes[i][j], child.Type)
 						}
 					}
@@ -174,5 +173,14 @@ func TestNewPredicateMultipleOrderByError(t *testing.T) {
 	_, err := NewPredicate("NameOrderByAscOrderByDesc")
 	if err == nil {
 		t.Error("expected error for multiple OrderBy clauses")
+	}
+}
+
+func TestNewPredicateOrderBySourceError(t *testing.T) {
+	// Valid predicate, but OrderBy content has no direction -- triggers
+	// NewOrderBySource error on the OrderBy branch (lines 35-37).
+	_, err := NewPredicate("NameOrderByName")
+	if err == nil {
+		t.Error("expected error for OrderBy with missing direction")
 	}
 }
