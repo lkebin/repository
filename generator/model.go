@@ -3,6 +3,7 @@ package generator
 import (
 	"go/types"
 	"reflect"
+	"strings"
 )
 
 func lookupColumns(model *ModelSpecs) []*Column {
@@ -36,7 +37,7 @@ func lookupPkColumn(model *ModelSpecs) *Column {
 
 func lookupColumnByProperty(property string, m *ModelSpecs) *Column {
 	for i := range m.Struct.NumFields() {
-		if m.Struct.Field(i).Name() == property {
+		if strings.ToLower(m.Struct.Field(i).Name()) == strings.ToLower(property) {
 			tag := reflect.StructTag(m.Struct.Tag(i))
 			columnName, _ := ParseTag(tag.Get("db"))
 			return &Column{
