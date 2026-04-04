@@ -1,6 +1,7 @@
 package generator
 
 import (
+	"go/types"
 	"strings"
 	"testing"
 
@@ -19,6 +20,24 @@ func loadTestModel(t *testing.T) *ModelSpecs {
 func loadTestRepository(t *testing.T) *RepositorySpecs {
 	t.Helper()
 	specs := ParseRepository([]string{"UserRepository"}, []string{"../testdata"}, []string{})
+	if len(specs) != 1 {
+		t.Fatalf("expected 1 repository spec, got %d", len(specs))
+	}
+	return &specs[0]
+}
+
+func loadNoPkModel(t *testing.T) *ModelSpecs {
+	t.Helper()
+	specs := ParseModel([]string{"NoPkModel"}, []string{"../testdata"}, []string{})
+	if len(specs) != 1 {
+		t.Fatalf("expected 1 model spec, got %d", len(specs))
+	}
+	return &specs[0]
+}
+
+func loadNoPkRepository(t *testing.T) *RepositorySpecs {
+	t.Helper()
+	specs := ParseRepository([]string{"NoPkRepository"}, []string{"../testdata"}, []string{})
 	if len(specs) != 1 {
 		t.Fatalf("expected 1 repository spec, got %d", len(specs))
 	}
@@ -186,6 +205,30 @@ func TestGenUpdateColumns(t *testing.T) {
 	}
 }
 
+func TestGenUpdateColumnsAutoIncrement(t *testing.T) {
+	specs := ParseModel([]string{"AutoIncModel"}, []string{"../testdata"}, []string{})
+	if len(specs) != 1 {
+		t.Fatalf("expected 1 model spec, got %d", len(specs))
+	}
+	model := &specs[0]
+	columns := GenUpdateColumns(model)
+
+	names := make([]string, len(columns))
+	for i, c := range columns {
+		names[i] = c.Name
+	}
+
+	expected := []string{"name", "birthday"}
+	if len(columns) != len(expected) {
+		t.Fatalf("expected %d update columns (excluding pk and standalone autoincrement), got %d: %v", len(expected), len(columns), names)
+	}
+	for i, want := range expected {
+		if columns[i].Name != want {
+			t.Errorf("column[%d]: expected %q, got %q", i, want, columns[i].Name)
+		}
+	}
+}
+
 func TestGenOrderByClause(t *testing.T) {
 	model := loadTestModel(t)
 
@@ -217,7 +260,10 @@ func TestGenOrderByClause(t *testing.T) {
 			if err != nil {
 				t.Fatalf("NewPartTree(%q) error: %v", tt.source, err)
 			}
-			got := GenOrderByClause(pt, model)
+			got, err := GenOrderByClause(pt, model)
+			if err != nil {
+				t.Fatalf("GenOrderByClause error: %v", err)
+			}
 			if got != tt.want {
 				t.Errorf("expected %q, got %q", tt.want, got)
 			}
@@ -245,6 +291,7 @@ func TestGenWhereClausePredicate(t *testing.T) {
 		{"FindByNameIn", " WHERE `name` IN (?)"},
 		{"FindByBirthdayBetween", " WHERE `birthday` BETWEEN ? AND ?"},
 		{"FindByNameAndBirthdayIsNull", " WHERE (`name` = ?) AND (`birthday` IS NULL)"},
+		{"FindByNameOrBirthday", " WHERE (`name` = ?) OR (`birthday` = ?)"},
 	}
 
 	for _, tt := range tests {
@@ -260,11 +307,81 @@ func TestGenWhereClausePredicate(t *testing.T) {
 				t.Fatalf("NewPartTree(%q) error: %v", tt.methodName, err)
 			}
 
-			got := GenWhereClausePredicate(pt, m.Signature().Params(), model)
+			got, err := GenWhereClausePredicate(pt, m.Signature().Params(), model)
+			if err != nil {
+				t.Fatalf("GenWhereClausePredicate error: %v", err)
+			}
 			if got != tt.want {
 				t.Errorf("expected %q, got %q", tt.want, got)
 			}
 		})
+	}
+}
+
+func TestGenWhereClausePredicateParamMismatch(t *testing.T) {
+	model := loadTestModel(t)
+	repo := loadTestRepository(t)
+
+	// Use FindByName's params (has 1 binding param) but parse
+	// FindByNameAndBirthday (needs 2 binding params) to trigger mismatch.
+	var findByNameParams *types.Tuple
+	for _, m := range repo.Methods {
+		if m.Name() == "FindByName" {
+			findByNameParams = m.Signature().Params()
+			break
+		}
+	}
+	if findByNameParams == nil {
+		t.Fatal("FindByName method not found")
+	}
+
+	pt, err := parser.NewPartTree("FindByNameAndBirthday")
+	if err != nil {
+		t.Fatalf("NewPartTree error: %v", err)
+	}
+
+	_, err = GenWhereClausePredicate(pt, findByNameParams, model)
+	if err == nil {
+		t.Error("expected error for param count mismatch")
+	}
+}
+
+func TestGenWhereClausePredicateColumnNotFound(t *testing.T) {
+	model := loadTestModel(t)
+	repo := loadTestRepository(t)
+
+	// FindByName has 1 param. We'll parse "FindByNonExistent" which
+	// references a column that doesn't exist in the model.
+	var findByNameParams *types.Tuple
+	for _, m := range repo.Methods {
+		if m.Name() == "FindByName" {
+			findByNameParams = m.Signature().Params()
+			break
+		}
+	}
+
+	pt, err := parser.NewPartTree("FindByNonExistent")
+	if err != nil {
+		t.Fatalf("NewPartTree error: %v", err)
+	}
+
+	_, err = GenWhereClausePredicate(pt, findByNameParams, model)
+	if err == nil {
+		t.Error("expected error for column not found")
+	}
+}
+
+func TestGenOrderByClauseColumnNotFound(t *testing.T) {
+	model := loadTestModel(t)
+
+	pt, err := parser.NewPartTree("FindByNameOrderByNonExistentAsc")
+	if err != nil {
+		t.Fatalf("NewPartTree error: %v", err)
+	}
+
+	_, err = GenOrderByClause(pt, model)
+	if err == nil {
+		t.Error("expected error for column not found in order by")
 	}
 }
 
@@ -306,11 +423,18 @@ func TestGenerateRepositoryImplements(t *testing.T) {
 		{"ExistsByName method", "func (r *userRepositoryImpl) ExistsByName("},
 		{"DeleteByName method", "func (r *userRepositoryImpl) DeleteByName("},
 		{"FindByNameAndBirthdayIsNull method", "func (r *userRepositoryImpl) FindByNameAndBirthdayIsNull("},
+		{"FindByNameOrBirthday method", "func (r *userRepositoryImpl) FindByNameOrBirthday("},
+		{"DeleteByNameIsNull method", "func (r *userRepositoryImpl) DeleteByNameIsNull("},
 
 		// SQL correctness for IsNull (the original bug)
 		{"IsNull SQL has no trailing comma", "WHERE `name` IS NULL\")"}, // closes with ") not ", )"
 		{"IsNull+And SQL", "WHERE (`name` IS NULL) AND (`birthday` = ?)"},
 		{"And+IsNull SQL", "WHERE (`name` = ?) AND (`birthday` IS NULL)"},
+
+		// OR clause
+		{"OR SQL", "WHERE (`name` = ?) OR (`birthday` = ?)"},
+		// Delete with IsNull (zero-arg)
+		{"DeleteByNameIsNull SQL", "DELETE FROM `user` WHERE `name` IS NULL"},
 
 		// SQL for other clauses
 		{"BETWEEN SQL", "BETWEEN ? AND ?"},
@@ -325,5 +449,63 @@ func TestGenerateRepositoryImplements(t *testing.T) {
 				t.Errorf("generated code missing %q", c.content)
 			}
 		})
+	}
+}
+
+func TestGenerateNoPkRepositoryError(t *testing.T) {
+	repo := loadNoPkRepository(t)
+	_, err := GenerateRepositoryImplements(repo)
+	if err == nil {
+		t.Error("expected error for repository with no PK model")
+	}
+}
+
+func TestGenFuncImplNoPkErrors(t *testing.T) {
+	noPkModel := loadNoPkModel(t)
+	repo := loadNoPkRepository(t)
+
+	methodsByName := make(map[string]*types.Func)
+	for _, m := range repo.Methods {
+		methodsByName[m.Name()] = m
+	}
+
+	needPk := []string{"Update", "FindById", "ExistsById", "DeleteById"}
+	for _, name := range needPk {
+		t.Run(name, func(t *testing.T) {
+			m, ok := methodsByName[name]
+			if !ok {
+				t.Skipf("method %s not found", name)
+				return
+			}
+			_, err := genFuncImpl("testImpl", noPkModel, m, repo)
+			if err == nil {
+				t.Errorf("expected error for %s with no PK", name)
+			}
+			if !strings.Contains(err.Error(), "pk column not found") {
+				t.Errorf("expected pk column error, got: %v", err)
+			}
+		})
+	}
+}
+
+func TestLookupPkColumnNil(t *testing.T) {
+	m := loadNoPkModel(t)
+	col := lookupPkColumn(m)
+	if col != nil {
+		t.Errorf("expected nil pk column for NoPkModel, got %+v", col)
+	}
+}
+
+func TestIsPkAutoIncrementNoPk(t *testing.T) {
+	m := loadNoPkModel(t)
+	if IsPkAutoIncrement(m) {
+		t.Error("expected false for model with no PK")
+	}
+}
+
+func TestPkFieldNameNoPk(t *testing.T) {
+	m := loadNoPkModel(t)
+	if PkFieldName(m) != "" {
+		t.Errorf("expected empty string for model with no PK, got %q", PkFieldName(m))
 	}
 }

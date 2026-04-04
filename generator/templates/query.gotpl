@@ -1,3 +1,4 @@
+{{ define "Query" }}
 func (r {{ .Receiver }}) Query({{ Params .Params .Repository }}) {{ Results .Results .Repository }} {
 	var (
         m     {{ ResultModel .Results .Repository }}
@@ -38,3 +39,4 @@ func (r {{ .Receiver }}) Query({{ Params .Params .Repository }}) {{ Results .Res
 
 	return m, total, nil
 }
+{{ end }}

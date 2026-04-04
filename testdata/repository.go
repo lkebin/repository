@@ -22,4 +22,6 @@ type UserRepository interface {
 	ExistsByName(ctx context.Context, name string) (bool, error)
 	DeleteByName(ctx context.Context, name string) error
 	FindByNameAndBirthdayIsNull(ctx context.Context, name string) ([]*User, error)
+	FindByNameOrBirthday(ctx context.Context, name string, birthday string) ([]*User, error)
+	DeleteByNameIsNull(ctx context.Context) error
 }

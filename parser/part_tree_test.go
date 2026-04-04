@@ -1,7 +1,6 @@
 package parser
 
 import (
-	"reflect"
 	"testing"
 )
 
@@ -276,7 +275,7 @@ func TestNewPartTree(t *testing.T) {
 
 				if tt.wantTypes != nil {
 					for j, child := range node.Children {
-						if !reflect.DeepEqual(child.Type, tt.wantTypes[i][j]) {
+						if child.Type.Name != tt.wantTypes[i][j].Name {
 							t.Errorf("node[%d].child[%d]: expected type %v, got %v", i, j, tt.wantTypes[i][j], child.Type)
 						}
 					}
@@ -295,5 +294,33 @@ func TestNewPartTree(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestNewPartTreeNoPrefix(t *testing.T) {
+	// Source doesn't match prefixTemplate but is a valid predicate.
+	pt, err := NewPartTree("Name")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(pt.Predicate.Nodes) != 1 {
+		t.Errorf("expected 1 node, got %d", len(pt.Predicate.Nodes))
+	}
+}
+
+func TestNewPartTreeErrorNoPrefix(t *testing.T) {
+	// Source doesn't match prefixTemplate; NewPredicate gets the full string
+	// which contains multiple OrderBy, triggering an error.
+	_, err := NewPartTree("NameOrderByAscOrderByDesc")
+	if err == nil {
+		t.Error("expected error for multiple OrderBy in non-prefix source")
+	}
+}
+
+func TestNewPartTreeErrorWithPrefix(t *testing.T) {
+	// Source matches prefixTemplate; predicate portion has multiple OrderBy.
+	_, err := NewPartTree("FindByNameOrderByAscOrderByDesc")
+	if err == nil {
+		t.Error("expected error for multiple OrderBy in predicate after prefix")
 	}
 }

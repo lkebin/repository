@@ -1,7 +1,6 @@
 package parser
 
 import (
-	"reflect"
 	"testing"
 )
 
@@ -62,9 +61,6 @@ func TestNewPart(t *testing.T) {
 		{"False", "ActiveFalse", "Active", False, Never},
 		{"IsFalse keyword variant", "ActiveIsFalse", "Active", False, Never},
 
-		// Exists
-		{"Exists", "NameExists", "Name", Exists, Never},
-
 		// IgnoreCase
 		{"IgnoreCase", "NameIgnoreCase", "Name", SimpleProperty, Always},
 		{"IgnoringCase", "NameIgnoringCase", "Name", SimpleProperty, Always},
@@ -78,7 +74,7 @@ func TestNewPart(t *testing.T) {
 				t.Errorf("Property: expected %q, got %q", tt.wantProperty, part.Property)
 			}
 
-			if !reflect.DeepEqual(part.Type, tt.wantType) {
+			if part.Type.Name != tt.wantType.Name {
 				t.Errorf("Type: expected %v, got %v", tt.wantType, part.Type)
 			}
 

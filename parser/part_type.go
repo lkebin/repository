@@ -3,36 +3,40 @@ package parser
 import "strings"
 
 var (
-	Between                = PartType{2, []string{"IsBetween", "Between"}}
-	IsNotNull              = PartType{0, []string{"IsNotNull", "NotNull"}}
-	IsNull                 = PartType{0, []string{"IsNull", "Null"}}
-	LessThan               = PartType{1, []string{"IsLessThan", "LessThan"}}
-	LessThanEqual          = PartType{1, []string{"IsLessThanEqual", "LessThanEqual"}}
-	GreaterThan            = PartType{1, []string{"IsGreaterThan", "GreaterThan"}}
-	GreaterThanEqual       = PartType{1, []string{"IsGreaterThanEqual", "GreaterThanEqual"}}
-	Before                 = PartType{1, []string{"IsBefore", "Before"}}
-	After                  = PartType{1, []string{"IsAfter", "After"}}
-	NotLike                = PartType{1, []string{"IsNotLike", "NotLike"}}
-	Like                   = PartType{1, []string{"IsLike", "Like"}}
-	StartingWith           = PartType{1, []string{"IsStartingWith", "StartingWith"}}
-	EndingWith             = PartType{1, []string{"IsEndingWith", "EndingWith"}}
-	IsNotEmpty             = PartType{0, []string{"IsNotEmpty", "NotEmpty"}}
-	IsEmpty                = PartType{0, []string{"IsEmpty", "Empty"}}
-	NotContaining          = PartType{1, []string{"IsNotContaining", "NotContaining"}}
-	Containing             = PartType{1, []string{"IsContaining", "Containing"}}
-	NotIn                  = PartType{1, []string{"IsNotIn", "NotIn"}}
-	In                     = PartType{1, []string{"IsIn", "In"}}
-	Near                   = PartType{1, []string{"IsNear", "Near"}}
-	WithIn                 = PartType{1, []string{"IsWithIn", "WithIn"}}
-	Regex                  = PartType{1, []string{"IsRegex", "Regex"}}
-	Exists                 = PartType{0, []string{"Exists"}}
-	True                   = PartType{0, []string{"IsTrue", "True"}}
-	False                  = PartType{0, []string{"IsFalse", "False"}}
-	NegatingSimpleProperty = PartType{1, []string{"IsNot", "Not"}}
-	SimpleProperty         = PartType{1, []string{"Is", "Equals"}}
+	Between                = PartType{"Between", 2, []string{"IsBetween", "Between"}}
+	IsNotNull              = PartType{"IsNotNull", 0, []string{"IsNotNull", "NotNull"}}
+	IsNull                 = PartType{"IsNull", 0, []string{"IsNull", "Null"}}
+	LessThan               = PartType{"LessThan", 1, []string{"IsLessThan", "LessThan"}}
+	LessThanEqual          = PartType{"LessThanEqual", 1, []string{"IsLessThanEqual", "LessThanEqual"}}
+	GreaterThan            = PartType{"GreaterThan", 1, []string{"IsGreaterThan", "GreaterThan"}}
+	GreaterThanEqual       = PartType{"GreaterThanEqual", 1, []string{"IsGreaterThanEqual", "GreaterThanEqual"}}
+	Before                 = PartType{"Before", 1, []string{"IsBefore", "Before"}}
+	After                  = PartType{"After", 1, []string{"IsAfter", "After"}}
+	NotLike                = PartType{"NotLike", 1, []string{"IsNotLike", "NotLike"}}
+	Like                   = PartType{"Like", 1, []string{"IsLike", "Like"}}
+	StartingWith           = PartType{"StartingWith", 1, []string{"IsStartingWith", "StartingWith"}}
+	EndingWith             = PartType{"EndingWith", 1, []string{"IsEndingWith", "EndingWith"}}
+	IsNotEmpty             = PartType{"IsNotEmpty", 0, []string{"IsNotEmpty", "NotEmpty"}}
+	IsEmpty                = PartType{"IsEmpty", 0, []string{"IsEmpty", "Empty"}}
+	NotContaining          = PartType{"NotContaining", 1, []string{"IsNotContaining", "NotContaining"}}
+	Containing             = PartType{"Containing", 1, []string{"IsContaining", "Containing"}}
+	NotIn                  = PartType{"NotIn", 1, []string{"IsNotIn", "NotIn"}}
+	In                     = PartType{"In", 1, []string{"IsIn", "In"}}
+	Near                   = PartType{"Near", 1, []string{"IsNear", "Near"}}
+	WithIn                 = PartType{"WithIn", 1, []string{"IsWithIn", "WithIn"}}
+	Regex                  = PartType{"Regex", 1, []string{"IsRegex", "Regex"}}
+	Exists                 = PartType{"Exists", 0, []string{"Exists"}}
+	True                   = PartType{"True", 0, []string{"IsTrue", "True"}}
+	False                  = PartType{"False", 0, []string{"IsFalse", "False"}}
+	NegatingSimpleProperty = PartType{"NegatingSimpleProperty", 1, []string{"IsNot", "Not"}}
+	SimpleProperty         = PartType{"SimpleProperty", 1, []string{"Is", "Equals"}}
 )
 
 var (
+	// All contains all supported operators for method name parsing.
+	// Near, WithIn, Regex, and Exists are intentionally excluded because they
+	// require database-specific features or subquery support not available in
+	// the generator.
 	All = []PartType{
 		IsNotNull,
 		IsNull,
@@ -53,10 +57,6 @@ var (
 		Containing,
 		NotIn,
 		In,
-		Near,
-		WithIn,
-		Regex,
-		Exists,
 		True,
 		False,
 		NegatingSimpleProperty,
@@ -73,6 +73,7 @@ var (
 )
 
 type PartType struct {
+	Name              string
 	NumberOfArguments int
 	Keywords          []string
 }

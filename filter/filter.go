@@ -341,7 +341,7 @@ func (f *filterImpl) parseRule(rule *Rule) (string, []any, error) {
 			where += (" AND " + ww)
 			values = append(values, vv...)
 		}
-		return "(" + strings.TrimLeft(where, " AND") + ")", values, nil
+		return "(" + strings.TrimPrefix(where, " AND ") + ")", values, nil
 	case "or":
 		where := ""
 		values := make([]any, 0)
@@ -354,7 +354,7 @@ func (f *filterImpl) parseRule(rule *Rule) (string, []any, error) {
 			where += (" OR " + ww)
 			values = append(values, vv...)
 		}
-		return "(" + strings.TrimLeft(where, " OR ") + ")", values, nil
+		return "(" + strings.TrimPrefix(where, " OR ") + ")", values, nil
 	}
 
 	return "", nil, fmt.Errorf("invalid rule type")
