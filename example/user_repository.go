@@ -10,6 +10,7 @@ import (
 type UserRepository interface {
 	repository.CrudRepository[User, int64]
 	repository.QueryRepository[User]
+	repository.QuerySeekRepository[User]
 
 	FindByName(ctx context.Context, name string) (*User, error)
 	FindByNameAndBirthdayIn(ctx context.Context, name string, birthday []string) ([]*User, error)
