@@ -226,3 +226,44 @@ func (r *userRepositoryImpl) FindByNameIsNullAndBirthday(ctx context.Context, bi
 	}
 	return m, nil
 }
+
+func (r *userRepositoryImpl) QuerySeek(ctx context.Context, size int64, p pager.SeekPager, f filter.Filter) ([]*User, int64, error) {
+	var (
+		m     []*User
+		total int64
+		countSQL = "SELECT COUNT(`id`) FROM `user` WHERE %s"
+		dataSQL  = "SELECT `id`, `name`, `birthday`, `created_at`, `updated_at` FROM `user` WHERE %s AND %s ORDER BY %s LIMIT ?"
+	)
+
+	filterWhere, filterValues, err := f.Build()
+	if err != nil {
+		return nil, total, fmt.Errorf("build filter error: %w", err)
+	}
+
+	if err := r.db.QueryRowxContext(ctx, fmt.Sprintf(countSQL, filterWhere), filterValues...).Scan(&total); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, 0, nil
+		}
+		return nil, total, fmt.Errorf("count error: %w", err)
+	}
+
+	if total == 0 {
+		return nil, total, nil
+	}
+
+	orderBy, seekWhere, seekValues, err := p.Build()
+	if err != nil {
+		return nil, total, fmt.Errorf("build pager error: %w", err)
+	}
+
+	bind := []interface{}{}
+	bind = append(bind, filterValues...)
+	bind = append(bind, seekValues...)
+	bind = append(bind, size)
+
+	if err := sqlx.SelectContext(ctx, r.db, &m, fmt.Sprintf(dataSQL, filterWhere, seekWhere, orderBy), bind...); err != nil {
+		return nil, total, fmt.Errorf("query error: %w", err)
+	}
+
+	return m, total, nil
+}

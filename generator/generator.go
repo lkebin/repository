@@ -34,9 +34,12 @@ var deleteTpl string
 //go:embed templates/query.gotpl
 var queryTpl string
 
+//go:embed templates/seek_query.gotpl
+var seekQueryTpl string
+
 var templates = template.Must(
 	template.New("").Funcs(funcMap()).
-		Parse(findTpl + existsTpl + countTpl + createTpl + updateTpl + deleteTpl + queryTpl),
+		Parse(findTpl + existsTpl + countTpl + createTpl + updateTpl + deleteTpl + queryTpl + seekQueryTpl),
 )
 
 func GenerateRepositoryImplements(spec *RepositorySpecs) ([]byte, error) {
@@ -190,6 +193,11 @@ func genFuncImpl(implName string, model *ModelSpecs, m *types.Func, spec *Reposi
 	case m.Name() == "Query":
 		if err := templates.ExecuteTemplate(tpl, "Query", fn); err != nil {
 			return "", fmt.Errorf("query template execute error: %w", err)
+		}
+
+	case m.Name() == "QuerySeek":
+		if err := templates.ExecuteTemplate(tpl, "QuerySeek", fn); err != nil {
+			return "", fmt.Errorf("query seek template execute error: %w", err)
 		}
 
 	default:
