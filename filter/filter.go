@@ -32,9 +32,6 @@ type Filter interface {
 	Rules() []*Rule
 	SetRules(rules []*Rule)
 
-	Search() string
-	SetSearch(query string)
-
 	In(column string, terms ...any)
 	NotIn(column string, terms ...any)
 
@@ -62,8 +59,7 @@ type Filter interface {
 }
 
 type filterImpl struct {
-	rules  []*Rule
-	search string
+	rules []*Rule
 }
 
 func NewFilter(opts ...Option) Filter {
@@ -75,14 +71,6 @@ func NewFilter(opts ...Option) Filter {
 	f := &filterImpl{}
 
 	return f
-}
-
-func (f *filterImpl) SetSearch(kw string) {
-	f.search = kw
-}
-
-func (f *filterImpl) Search() string {
-	return f.search
 }
 
 func (f *filterImpl) SetRules(rules []*Rule) {

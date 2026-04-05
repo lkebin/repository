@@ -122,7 +122,7 @@ func (p *seekPagerImpl) Build() (string, string, []any, error) {
 
 			andPairs := make([]string, 0)
 			if k > 0 {
-				for i := 0; i < k; i++ {
+				for i := range k {
 					andPairs = append(andPairs, fmt.Sprintf("`%s` = ?", p.orderPairs[i].column))
 					seekValues = append(seekValues, p.next[i])
 				}
@@ -135,7 +135,7 @@ func (p *seekPagerImpl) Build() (string, string, []any, error) {
 
 		// Final condition: all order columns equal and ID > lastID
 		andPairs := make([]string, 0)
-		for i := 0; i < len(p.orderPairs); i++ {
+		for i := range len(p.orderPairs) {
 			andPairs = append(andPairs, fmt.Sprintf("`%s` = ?", p.orderPairs[i].column))
 			seekValues = append(seekValues, p.next[i])
 		}

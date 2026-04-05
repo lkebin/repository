@@ -22,14 +22,6 @@ func TestNewFilter(t *testing.T) {
 	}
 }
 
-func TestSearchGetSet(t *testing.T) {
-	f := NewFilter()
-	f.SetSearch("hello")
-	if f.Search() != "hello" {
-		t.Errorf("expected %q, got %q", "hello", f.Search())
-	}
-}
-
 func TestRulesGetSet(t *testing.T) {
 	f := NewFilter()
 	rules := []*Rule{{Column: "a", Type: "term", Operator: "eq", Query: 1}}
