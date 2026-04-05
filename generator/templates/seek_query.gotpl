@@ -33,7 +33,7 @@ func (r {{ .Receiver }}) QuerySeek({{ Params .Params .Repository }}) {{ Results 
 	bind = append(bind, seekValues...)
 	bind = append(bind, size)
 
-	if err := sqlx.SelectContext(ctx, r.db, &m, fmt.Sprintf(dataSQL, filterWhere, seekWhere, orderBy), bind...); err != nil {
+	if err := sqlx.SelectContext({{ CtxParam .Params }}, r.db, &m, fmt.Sprintf(dataSQL, filterWhere, seekWhere, orderBy), bind...); err != nil {
 		return nil, total, fmt.Errorf("query error: %w", err)
 	}
 
