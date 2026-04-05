@@ -55,6 +55,8 @@ func TestRuleConstructors(t *testing.T) {
 		{"Lt", Lt("col", 5), "range", "lt", "col"},
 		{"Lte", Lte("col", 6), "range", "lte", "col"},
 		{"Between", Between("col", 1, 10), "range", "between", "col"},
+		{"Like", Like("col", "%test%"), "term", "like", "col"},
+		{"NotLike", NotLike("col", "%test%"), "term", "notlike", "col"},
 	}
 
 	for _, tt := range tests {
@@ -111,11 +113,13 @@ func TestInterfaceMethodsAppendRules(t *testing.T) {
 	f.Lt("m", 5)
 	f.Lte("n", 6)
 	f.Between("o", 1, 10)
-	f.And(Eq("p", 1))
-	f.Or(Eq("q", 2))
+	f.Like("p", "%test%")
+	f.NotLike("q", "%test%")
+	f.And(Eq("r", 1))
+	f.Or(Eq("s", 2))
 
-	if len(f.Rules()) != 17 {
-		t.Fatalf("expected 17 rules, got %d", len(f.Rules()))
+	if len(f.Rules()) != 19 {
+		t.Fatalf("expected 19 rules, got %d", len(f.Rules()))
 	}
 }
 
@@ -141,6 +145,8 @@ func TestBuildSingleOperators(t *testing.T) {
 		{"notin", NotIn("id", 1, 2, 3), "", 3}, // sqlx.In rewrites the query
 		{"injson", InJSON("tags", "a", "b"), "", 1},
 		{"notinjson", NotInJSON("tags", "a", "b"), "", 1},
+		{"like", Like("name", "%test%"), "(name LIKE ?)", 1},
+		{"notlike", NotLike("name", "%test%"), "(name NOT LIKE ?)", 1},
 	}
 
 	for _, tt := range tests {

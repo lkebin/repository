@@ -46,6 +46,8 @@ type Filter interface {
 
 	Eq(column string, value any)
 	Ne(column string, value any)
+	Like(column string, pattern string)
+	NotLike(column string, pattern string)
 	Gt(column string, value any)
 	Gte(column string, value any)
 	Lt(column string, value any)
@@ -231,6 +233,32 @@ func (f *filterImpl) Ne(column string, value any) {
 	f.rules = append(f.rules, Ne(column, value))
 }
 
+func Like(column string, pattern string) *Rule {
+	return &Rule{
+		Column:   column,
+		Type:     "term",
+		Operator: "like",
+		Query:    pattern,
+	}
+}
+
+func (f *filterImpl) Like(column string, pattern string) {
+	f.rules = append(f.rules, Like(column, pattern))
+}
+
+func NotLike(column string, pattern string) *Rule {
+	return &Rule{
+		Column:   column,
+		Type:     "term",
+		Operator: "notlike",
+		Query:    pattern,
+	}
+}
+
+func (f *filterImpl) NotLike(column string, pattern string) {
+	f.rules = append(f.rules, NotLike(column, pattern))
+}
+
 func Gt(column string, value any) *Rule {
 	return &Rule{
 		Column:   column,
@@ -413,6 +441,12 @@ func (f *filterImpl) whereBuild(column string, operator string, query any) (stri
 		v = append(v, query)
 	case "ne", "not":
 		w = fmt.Sprintf(`(%s != ?)`, column)
+		v = append(v, query)
+	case "like":
+		w = fmt.Sprintf(`(%s LIKE ?)`, column)
+		v = append(v, query)
+	case "notlike":
+		w = fmt.Sprintf(`(%s NOT LIKE ?)`, column)
 		v = append(v, query)
 	case "gt":
 		w = fmt.Sprintf(`(%s > ?)`, column)
